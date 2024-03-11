@@ -11,6 +11,13 @@ type User struct {
 	Updated string `json:"updated"`
 }
 
+type UserInfo struct {
+	Info         User   `json:"user"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	Alive        int    `json:"alive"`
+}
+
 type SendMail struct {
 	Email string `json:"email"`
 }
@@ -37,4 +44,10 @@ type RegToken struct {
 	Type    int    `json:"type"`
 	Code    string `json:"code"`
 	Created string `json:"created"`
+}
+
+type AccessToken struct {
+	UserId       string `json:"user_id`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }

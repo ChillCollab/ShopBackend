@@ -2,12 +2,14 @@ package authController
 
 import (
 	dataBase "backend_v1/internal/dataBase/models"
+	"backend_v1/internal/middlewares/auth"
 	"backend_v1/models"
 	utils "backend_v1/pkg/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -33,10 +35,36 @@ func Login(c *gin.Context) {
 	var foundUser models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(401, errMsg(false, "User"+user.Email+" is not exist!"))
+		c.JSON(401, errMsg(false, "User "+user.Email+" is not exist!"))
 		return
 	}
 
+	var passCheck models.UserPass
+	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", foundUser.ID).First(&passCheck)
+	userPass := utils.Hash(user.Password)
+	if userPass != passCheck.Pass {
+		c.JSON(401, errMsg(false, "Incorrect password"))
+		return
+	}
+	access, refresh, err := auth.GenerateJWT(auth.TokenData{
+		Authorized: true,
+		Email:      user.Email,
+	})
+	if err != nil || refresh == "" || access == "" {
+		panic(err)
+	}
+
+	alive, err := strconv.Atoi(os.Getenv("ACCESS_ALIVE"))
+	if err != nil {
+		panic(err)
+	}
+
+	c.JSON(http.StatusOK, models.UserInfo{
+		Info:         foundUser,
+		AccessToken:  access,
+		RefreshToken: refresh,
+		Alive:        alive,
+	})
 }
 
 func Register(c *gin.Context) {
