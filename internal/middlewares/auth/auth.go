@@ -7,11 +7,21 @@ import (
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gin-gonic/gin"
 )
 
 type TokenData struct {
 	Authorized bool
 	Email      string
+}
+type jwtData struct {
+	Authorized interface{} `json:"authorized"`
+	Email      interface{} `json:"email"`
+	Expired    interface{} `json:"expired"`
+}
+
+type Token struct {
+	Token string `json:"token"`
 }
 
 func GenerateJWT(data TokenData) (string, string, error) {
@@ -30,7 +40,7 @@ func GenerateJWT(data TokenData) (string, string, error) {
 		return "", "", err
 	}
 
-	refresh, err := generateToken(data, refreshAlive, os.Getenv("JWT_SECRET")+"refr")
+	refresh, err := generateToken(data, refreshAlive, os.Getenv("JWT_SECRET"))
 	if err != nil {
 		return "", "", err
 	}
@@ -46,12 +56,32 @@ func CheckTokenExpiration(tokenString string) bool {
 		return true
 	}
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		exp := int64(claims["exp"].(float64))
+		exp := int64(claims["expired"].(float64))
 		if exp < time.Now().Unix() {
 			return true
 		}
 	}
 	return false
+}
+
+func JwtParse(jw string) jwtData {
+	token, err := jwt.Parse(jw, func(token *jwt.Token) (interface{}, error) {
+		return []byte(os.Getenv("JWT_SECRET")), nil
+	})
+	if err != nil {
+		return jwtData{}
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		auth := claims["authorized"]
+		email := claims["email"]
+		exp := claims["expired"]
+		return jwtData{
+			Authorized: auth,
+			Email:      email,
+			Expired:    exp,
+		}
+	}
+	return jwtData{}
 }
 
 func generateToken(data TokenData, alive int, signingKey string) (string, error) {
@@ -68,4 +98,17 @@ func generateToken(data TokenData, alive int, signingKey string) (string, error)
 	}
 
 	return tokenString, nil
+}
+
+func CheckTokenRemaining(token string, c *gin.Context) (int, error) {
+	data := JwtParse(token)
+	if data.Email == nil {
+		c.JSON(401, gin.H{
+			"error": "Incorrect email or password!",
+		})
+		return 0, fmt.Errorf("incorrect email")
+	}
+	remaningTime := time.Unix(int64(data.Expired.(float64)), 0).Sub(time.Now().UTC())
+
+	return int(remaningTime.Seconds()), nil
 }

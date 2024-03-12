@@ -34,6 +34,7 @@ func InitDB(cfg Config) {
 		// &models.Emails{},
 		// &models.Messages{},
 		&models.UserPass{},
+		&models.AccessToken{},
 	); err != nil {
 		panic(err)
 	}
