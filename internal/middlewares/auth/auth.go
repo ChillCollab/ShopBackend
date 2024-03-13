@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -111,4 +112,11 @@ func CheckTokenRemaining(token string, c *gin.Context) (int, error) {
 	remaningTime := time.Unix(int64(data.Expired.(float64)), 0).Sub(time.Now().UTC())
 
 	return int(remaningTime.Seconds()), nil
+}
+
+func GetAuth(c *gin.Context) string {
+	token := c.GetHeader("Authorization")
+	cleanedToken := strings.Replace(token, "Bearer ", "", 1)
+
+	return cleanedToken
 }

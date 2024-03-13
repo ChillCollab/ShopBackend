@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -141,6 +140,10 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+	if valid := utils.MailValidator(user.Email); !valid {
+		c.JSON(http.StatusBadRequest, errMsg(false, "Incorrect email"))
+		return
+	}
 
 	var ifExist models.User
 
@@ -150,14 +153,16 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	create := dataBase.DB.Model(&models.User{}).Create(&models.User{
+	completeUser := models.User{
 		Login:   user.Login,
 		Name:    user.Name,
 		Surname: user.Surname,
 		Email:   user.Email,
 		Created: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
 		Updated: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
-	})
+	}
+
+	create := dataBase.DB.Model(&models.User{}).Create(&completeUser)
 
 	if create.Error != nil {
 		fmt.Println("DB Error:", create.Error)
@@ -165,8 +170,9 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"response": "Endpoint doesn't complete",
+	c.JSON(http.StatusOK, gin.H{
+		"error": false,
+		"user":  completeUser,
 	})
 }
 
@@ -219,7 +225,15 @@ func Send(c *gin.Context) {
 		Created: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
 	})
 
-	if utils.Send(foundUser.Email, "Welcome to Admin Panel!", "Your link for countinue is: https://"+os.Getenv("DOMAIN")+"/acc/activate/"+code) {
+	if utils.Send(
+		foundUser.Email,
+		"Welcome to Admin Panel!", "Your link for countinue is: https://"+os.Getenv("DOMAIN")+"/acc/activate/"+code+
+			"\n\nEmail: "+user.Email+
+			"\nLogin: "+foundUser.Name+
+			"\nName: "+foundUser.Name+
+			"\nSurname: "+foundUser.Surname+
+			"\nCreated: "+foundUser.Created,
+	) {
 		c.JSON(200, errMsg(true, "Email sent to "+foundUser.Email))
 		return
 	} else {
@@ -277,13 +291,12 @@ func Activate(c *gin.Context) {
 }
 
 func Refresh(c *gin.Context) {
-	token := c.GetHeader("Authorization")
-	cleanedToken := strings.Replace(token, "Bearer ", "", 1)
-	if cleanedToken == "" {
+	token := auth.GetAuth(c)
+	if token == "" {
 		c.JSON(401, errMsg(false, "Incorrect email or password!"))
 		return
 	}
-	data := auth.JwtParse(cleanedToken)
+	data := auth.JwtParse(token)
 	if data.Email == nil {
 		c.JSON(401, errMsg(false, "Incorrect email or password!"))
 		return
@@ -311,7 +324,7 @@ func Refresh(c *gin.Context) {
 	}
 
 	var foundToken models.AccessToken
-	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", cleanedToken).First(&foundToken)
+	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
 	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
 		c.JSON(401, errMsg(false, "Incorrect email or password!"))
 		return
@@ -352,13 +365,89 @@ func Refresh(c *gin.Context) {
 }
 
 func Logout(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"response": "Endpoint doesn't complate",
-	})
+	token := auth.GetAuth(c)
+	if token == "" {
+		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		return
+	}
+	var foundToken []models.AccessToken
+	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&foundToken)
+	if len(foundToken) == 0 {
+		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		return
+	}
+	if len(foundToken) > 1 {
+		if err := fmt.Errorf("a lot of access tokens for same user"); err != nil {
+			panic(err)
+		}
+	}
+
+	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
+	c.JSON(200, errMsg(true, "Token deleted"))
 }
 
 func Recovery(c *gin.Context) {
-	c.JSON(200, gin.H{
-		"response": "Endpoint doesn't complate",
+	var user models.SendMail
+
+	rawData, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, errMsg(false, "Parse error!"))
+		return
+	}
+	if err := utils.JsonChecker(user, rawData, c); err != "" {
+		c.JSON(http.StatusBadRequest, errMsg(false, err))
+		return
+	}
+	if err := json.Unmarshal(rawData, &user); err != nil {
+		c.JSON(400, gin.H{
+			"error": "Parse error",
+		})
+		return
+	}
+	if user.Email == "" {
+		c.JSON(401, errMsg(false, "Field 'Email' can't be empty!"))
+		return
+	}
+
+	var foundUser models.User
+	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
+	if foundUser.Email == "" {
+		c.JSON(200, errMsg(true, "Email sent to "+user.Email))
+		return
+	}
+
+	var checkUser models.RegToken
+
+	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).First(&checkUser)
+	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
+		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
+	} else {
+		c.JSON(403, errMsg(false, "Email already sent to address: "+user.Email))
+		return
+	}
+
+	code := utils.CodeGen()
+
+	dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
+		UserId:  int(foundUser.ID),
+		Type:    1,
+		Code:    code,
+		Created: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
 	})
+
+	if utils.Send(
+		foundUser.Email,
+		"Admin Panel password recovery!", "Your link for countinue is: https://"+os.Getenv("DOMAIN")+"/acc/activate/"+code+
+			"\n\nEmail: "+user.Email+
+			"\nLogin: "+foundUser.Name+
+			"\nName: "+foundUser.Name+
+			"\nSurname: "+foundUser.Surname+
+			"\nCreated: "+foundUser.Created,
+	) {
+		c.JSON(200, errMsg(true, "Email sent to "+foundUser.Email))
+		return
+	} else {
+		c.JSON(403, errMsg(false, "Email did't send. Pls, check logs"))
+		return
+	}
 }
