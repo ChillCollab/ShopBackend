@@ -2,7 +2,9 @@ package authController
 
 import (
 	dataBase "backend_v1/internal/dataBase/models"
+	errorcodes "backend_v1/internal/errorCodes"
 	"backend_v1/internal/middlewares/auth"
+	"backend_v1/internal/middlewares/handlers"
 	"backend_v1/models"
 	utils "backend_v1/pkg/utils"
 	"encoding/json"
@@ -15,40 +17,33 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func errMsg(err bool, message string) gin.H {
-	return gin.H{
-		"success": err,
-		"message": message,
-	}
-}
-
 func Login(c *gin.Context) {
 	var user models.UserLogin
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errMsg(false, "Parse error!"))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
 		return
 	}
 
 	if err := utils.JsonChecker(user, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, errMsg(false, err))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, 100))
 		return
 	}
 
 	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(http.StatusBadRequest, errMsg(false, "Unmarshal error!"))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Unmarshal error!", 100))
 		return
 	}
 
 	var foundUser models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(401, errMsg(false, "User "+user.Email+" is not exist!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	if !foundUser.Active {
-		c.JSON(401, errMsg(false, "User "+user.Email+" is not Active"))
+		c.JSON(401, handlers.ErrMsg(false, "User "+user.Email+" is not Active", errorcodes.UserIsNotActive))
 		return
 	}
 
@@ -56,7 +51,7 @@ func Login(c *gin.Context) {
 	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", foundUser.ID).First(&passCheck)
 	userPass := utils.Hash(user.Password)
 	if userPass != passCheck.Pass {
-		c.JSON(401, errMsg(false, "Incorrect password"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
 		return
 	}
 	access, refresh, err := auth.GenerateJWT(auth.TokenData{
@@ -64,10 +59,6 @@ func Login(c *gin.Context) {
 		Email:      user.Email,
 	})
 	if err != nil || refresh == "" || access == "" {
-		panic(err)
-	}
-
-	if err != nil {
 		panic(err)
 	}
 
@@ -141,7 +132,7 @@ func Register(c *gin.Context) {
 		return
 	}
 	if valid := utils.MailValidator(user.Email); !valid {
-		c.JSON(http.StatusBadRequest, errMsg(false, "Incorrect email"))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Incorrect email", errorcodes.IncorrectEmail))
 		return
 	}
 
@@ -149,7 +140,7 @@ func Register(c *gin.Context) {
 
 	dataBase.DB.Where("email = ?", user.Email).First(&ifExist)
 	if ifExist.Email != "" {
-		c.JSON(403, errMsg(false, "User with the same email already exist"))
+		c.JSON(403, handlers.ErrMsg(false, "User with the same email already exist", errorcodes.UserAlreadyExist))
 		return
 	}
 
@@ -166,7 +157,7 @@ func Register(c *gin.Context) {
 
 	if create.Error != nil {
 		fmt.Println("DB Error:", create.Error)
-		c.JSON(403, errMsg(false, "DB error, please check logs"))
+		c.JSON(403, handlers.ErrMsg(false, "DB error, please check logs", errorcodes.DBError))
 		return
 	}
 
@@ -181,11 +172,11 @@ func Send(c *gin.Context) {
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errMsg(false, "Parse error!"))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
 		return
 	}
 	if err := utils.JsonChecker(user, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, errMsg(false, err))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &user); err != nil {
@@ -195,14 +186,14 @@ func Send(c *gin.Context) {
 		return
 	}
 	if user.Email == "" {
-		c.JSON(401, errMsg(false, "User was not registered"))
+		c.JSON(401, handlers.ErrMsg(false, "User was not registered", errorcodes.UserNotFound))
 		return
 	}
 
 	var foundUser models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(403, errMsg(false, "User was not found"))
+		c.JSON(403, handlers.ErrMsg(false, "User was not found", errorcodes.UserNotFound))
 		return
 	}
 
@@ -212,7 +203,7 @@ func Send(c *gin.Context) {
 	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
 	} else {
-		c.JSON(403, errMsg(false, "Email already sent to address: "+user.Email))
+		c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
 		return
 	}
 
@@ -234,10 +225,10 @@ func Send(c *gin.Context) {
 			"\nSurname: "+foundUser.Surname+
 			"\nCreated: "+foundUser.Created,
 	) {
-		c.JSON(200, errMsg(true, "Email sent to "+foundUser.Email))
+		c.JSON(200, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {
-		c.JSON(403, errMsg(false, "Email did't send. Pls, check logs"))
+		c.JSON(403, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
 		return
 	}
 }
@@ -249,16 +240,16 @@ func Activate(c *gin.Context) {
 		panic(err)
 	}
 	if user.Code == "" {
-		c.JSON(404, errMsg(false, "Incorrect activation code!"))
+		c.JSON(404, handlers.ErrMsg(false, "Incorrect activation code!", errorcodes.IncorrectActivationCode))
 		return
 	}
 	if user.Password == "" {
-		c.JSON(403, errMsg(false, "Password can't be null"))
+		c.JSON(403, handlers.ErrMsg(false, "Password can't be null", errorcodes.NameOfSurnameIncorrect))
 		return
 	}
 	digit, symb := utils.PasswordChecker(user.Password)
 	if !digit || !symb {
-		c.JSON(403, errMsg(false, "Password should be include Digits and Symbols"))
+		c.JSON(403, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
@@ -266,12 +257,12 @@ func Activate(c *gin.Context) {
 
 	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", user.Code).First(&activate)
 	if activate.Code == "" {
-		c.JSON(403, errMsg(false, "Activation code was not found"))
+		c.JSON(403, handlers.ErrMsg(false, "Activation code was not found", errorcodes.ActivationCodeNotFound))
 		return
 	}
 	if activate.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate.Code).Delete(activate)
-		c.JSON(401, errMsg(false, "Your activaton code was expired! Request a new activation code."))
+		c.JSON(401, handlers.ErrMsg(false, "Your activaton code was expired! Request a new activation code.", errorcodes.ActivationCodeExpired))
 		return
 	}
 	var checkPass models.UserPass
@@ -287,46 +278,46 @@ func Activate(c *gin.Context) {
 	})
 	dataBase.DB.Model(&models.User{}).Where("id = ?", activate.UserId).Update("active", true)
 
-	c.JSON(200, errMsg(true, "Account "+user.Email+" was successful activate!"))
+	c.JSON(200, handlers.ErrMsg(true, "Account "+user.Email+" was successful activate!", 0))
 }
 
 func Refresh(c *gin.Context) {
-	token := auth.GetAuth(c)
+	token := auth.CheckAuth(c)
 	if token == "" {
-		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
 		return
 	}
 	data := auth.JwtParse(token)
 	if data.Email == nil {
-		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errMsg(false, "Parse error!"))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
 		return
 	}
 	var dataToken auth.Token
 	if err := utils.JsonChecker(dataToken, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, errMsg(false, err))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &dataToken); err != nil {
-		c.JSON(http.StatusBadRequest, errMsg(false, "Unmarshal error!"))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Unmarshal error!", errorcodes.UnmarshalError))
 		return
 	}
 
 	var user models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", data.Email).First(&user)
 	if user.ID == 0 {
-		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 
 	var foundToken models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
 	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
-		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	id, err := strconv.Atoi(foundToken.UserId)
@@ -337,11 +328,11 @@ func Refresh(c *gin.Context) {
 		panic("Check user access tokens. Found id != userID from jwt")
 	}
 	if auth.CheckTokenExpiration(dataToken.Token) {
-		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	if dataToken.Token != foundToken.RefreshToken {
-		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 
@@ -367,13 +358,13 @@ func Refresh(c *gin.Context) {
 func Logout(c *gin.Context) {
 	token := auth.GetAuth(c)
 	if token == "" {
-		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	var foundToken []models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&foundToken)
 	if len(foundToken) == 0 {
-		c.JSON(401, errMsg(false, "Incorrect email or password!"))
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	if len(foundToken) > 1 {
@@ -383,7 +374,7 @@ func Logout(c *gin.Context) {
 	}
 
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
-	c.JSON(200, errMsg(true, "Token deleted"))
+	c.JSON(200, handlers.ErrMsg(true, "Token deleted", 0))
 }
 
 func Recovery(c *gin.Context) {
@@ -391,11 +382,11 @@ func Recovery(c *gin.Context) {
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, errMsg(false, "Parse error!"))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
 		return
 	}
 	if err := utils.JsonChecker(user, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, errMsg(false, err))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &user); err != nil {
@@ -405,14 +396,14 @@ func Recovery(c *gin.Context) {
 		return
 	}
 	if user.Email == "" {
-		c.JSON(401, errMsg(false, "Field 'Email' can't be empty!"))
+		c.JSON(401, handlers.ErrMsg(false, "Field 'Email' can't be empty!", errorcodes.EmptyEmail))
 		return
 	}
 
 	var foundUser models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(200, errMsg(true, "Email sent to "+user.Email))
+		c.JSON(200, handlers.ErrMsg(true, "Email sent to "+user.Email, 0))
 		return
 	}
 
@@ -422,7 +413,7 @@ func Recovery(c *gin.Context) {
 	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
 	} else {
-		c.JSON(403, errMsg(false, "Email already sent to address: "+user.Email))
+		c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
 		return
 	}
 
@@ -444,10 +435,10 @@ func Recovery(c *gin.Context) {
 			"\nSurname: "+foundUser.Surname+
 			"\nCreated: "+foundUser.Created,
 	) {
-		c.JSON(200, errMsg(true, "Email sent to "+foundUser.Email))
+		c.JSON(200, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {
-		c.JSON(403, errMsg(false, "Email did't send. Pls, check logs"))
+		c.JSON(403, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
 		return
 	}
 }

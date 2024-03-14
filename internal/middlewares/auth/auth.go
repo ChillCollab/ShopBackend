@@ -1,6 +1,8 @@
 package auth
 
 import (
+	dataBase "backend_v1/internal/dataBase/models"
+	"backend_v1/models"
 	"fmt"
 	"os"
 	"strconv"
@@ -119,4 +121,36 @@ func GetAuth(c *gin.Context) string {
 	cleanedToken := strings.Replace(token, "Bearer ", "", 1)
 
 	return cleanedToken
+}
+
+func CheckAuth(c *gin.Context) string {
+	token := strings.Replace(c.GetHeader("Authorization"), "Bearer ", "", 1)
+	if token == "" {
+		fmt.Println(1)
+		return ""
+	}
+	fmt.Println(token)
+	var dbToken []models.AccessToken
+	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&dbToken)
+	if len(dbToken) <= 0 {
+		fmt.Println(2)
+		return ""
+	}
+	if expired := CheckTokenExpiration(token); expired {
+		fmt.Println(3)
+		return ""
+	}
+	userEmail := JwtParse(token).Email
+	if userEmail == "" {
+		fmt.Println(4)
+		panic("incorrect user email")
+	}
+	var foundUsers []models.User
+	dataBase.DB.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUsers)
+	if len(foundUsers) <= 0 {
+		fmt.Println(5)
+		return ""
+	}
+
+	return token
 }
