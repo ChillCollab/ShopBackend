@@ -148,7 +148,7 @@ func CheckAuth(c *gin.Context) string {
 	var foundUsers []models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUsers)
 	if len(foundUsers) <= 0 {
-		fmt.Println(5)
+		fmt.Println(foundUsers)
 		return ""
 	}
 

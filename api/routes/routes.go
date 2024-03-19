@@ -24,11 +24,13 @@ func Routes(r *gin.Engine) {
 		user := api.Group("/user")
 		{
 			user.GET("/info", userController.Info)
+			user.POST("/changepass", userController.ChangePassword)
 		}
 
 		admin := api.Group("/admin")
 		{
 			admin.GET("/users", adminController.Users)
+			admin.POST("/user/change", adminController.ChangeUser)
 		}
 	}
 }

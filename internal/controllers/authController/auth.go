@@ -27,28 +27,28 @@ func Login(c *gin.Context) {
 	}
 
 	if err := utils.JsonChecker(user, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, 100))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.UnmarshalError))
 		return
 	}
 
 	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Unmarshal error!", 100))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Unmarshal error!", errorcodes.UnmarshalError))
 		return
 	}
 
-	var foundUser models.User
-	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
-	if foundUser.Email == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+	var foundUser []models.User
+	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).Find(&foundUser)
+	if len(foundUser) <= 0 {
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
-	if !foundUser.Active {
+	if !foundUser[0].Active {
 		c.JSON(401, handlers.ErrMsg(false, "User "+user.Email+" is not Active", errorcodes.UserIsNotActive))
 		return
 	}
 
 	var passCheck models.UserPass
-	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", foundUser.ID).First(&passCheck)
+	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", foundUser[0].ID).First(&passCheck)
 	userPass := utils.Hash(user.Password)
 	if userPass != passCheck.Pass {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
@@ -64,19 +64,25 @@ func Login(c *gin.Context) {
 
 	var jwtCheck models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(passCheck.UserId))).First(&jwtCheck)
-	if jwtCheck.AccessToken != "" {
+	data := auth.JwtParse(jwtCheck.AccessToken)
+	var foundUsr []models.User
+	dataBase.DB.Model(models.User{}).Where("email = ?", data.Email).Find(&foundUsr)
+	if jwtCheck.AccessToken != "" && jwtCheck.RefreshToken != "" {
 		expRefresh := auth.CheckTokenExpiration(jwtCheck.RefreshToken)
 		expAccess := auth.CheckTokenExpiration(jwtCheck.AccessToken)
 		if expAccess || expRefresh {
 			fmt.Println(0)
 			dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(passCheck.UserId))).Delete(jwtCheck)
+		} else if len(foundUsr) <= 0 {
+			dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(passCheck.UserId))).Delete(jwtCheck)
 		} else {
+
 			rem, err := auth.CheckTokenRemaining(jwtCheck.AccessToken, c)
 			if err != nil {
 				panic(err)
 			}
 			c.JSON(http.StatusOK, models.UserInfo{
-				Info:         foundUser,
+				Info:         foundUser[0],
 				AccessToken:  jwtCheck.AccessToken,
 				RefreshToken: jwtCheck.RefreshToken,
 				Alive:        rem,
@@ -87,7 +93,7 @@ func Login(c *gin.Context) {
 	}
 
 	dataBase.DB.Model(models.AccessToken{}).Create(models.AccessToken{
-		UserId:       strconv.Itoa(int(foundUser.ID)),
+		UserId:       foundUser[0].ID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 	})
@@ -96,7 +102,7 @@ func Login(c *gin.Context) {
 		panic(err)
 	}
 	c.JSON(http.StatusOK, models.UserInfo{
-		Info:         foundUser,
+		Info:         foundUser[0],
 		AccessToken:  access,
 		RefreshToken: refresh,
 		Alive:        rem,
@@ -320,11 +326,8 @@ func Refresh(c *gin.Context) {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
-	id, err := strconv.Atoi(foundToken.UserId)
-	if err != nil {
-		panic(err)
-	}
-	if uint(id) != user.ID {
+
+	if uint(foundToken.UserId) != user.ID {
 		panic("Check user access tokens. Found id != userID from jwt")
 	}
 	if auth.CheckTokenExpiration(dataToken.Token) {
@@ -346,7 +349,7 @@ func Refresh(c *gin.Context) {
 	}
 
 	newTokens := models.AccessToken{
-		UserId:       strconv.Itoa(int(user.ID)),
+		UserId:       user.ID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 	}
