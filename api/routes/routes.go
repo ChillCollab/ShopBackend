@@ -31,6 +31,7 @@ func Routes(r *gin.Engine) {
 		{
 			admin.GET("/users", adminController.Users)
 			admin.POST("/user/change", adminController.ChangeUser)
+			admin.DELETE("/users/delete", adminController.DeleteUsers)
 		}
 	}
 }

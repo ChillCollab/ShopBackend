@@ -32,6 +32,10 @@ type UserInfo struct {
 	Alive        int    `json:"alive"`
 }
 
+type UsersArray struct {
+	ID []int `json:"id"`
+}
+
 type SendMail struct {
 	Email string `json:"email"`
 }
