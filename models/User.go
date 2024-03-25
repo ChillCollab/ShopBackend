@@ -11,6 +11,16 @@ type User struct {
 	Updated string `json:"updated"`
 }
 
+type UserRole struct {
+	ID   uint `gorm:"unique" json:"id`
+	Role int  `json:"role"`
+}
+
+type UserInfo struct {
+	User
+	Role int `json:"role"`
+}
+
 type ChangePassword struct {
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`
@@ -25,7 +35,7 @@ type ChangeUser struct {
 	Active  bool   `json:"active"`
 }
 
-type UserInfo struct {
+type UserLoginInfo struct {
 	Info         User   `json:"user"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`

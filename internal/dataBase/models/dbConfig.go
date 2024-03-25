@@ -30,9 +30,8 @@ func InitDB(cfg Config) {
 
 	if err := db.AutoMigrate(
 		&models.User{},
+		&models.UserRole{},
 		&models.RegToken{},
-		// &models.Emails{},
-		// &models.Messages{},
 		&models.UserPass{},
 		&models.AccessToken{},
 	); err != nil {

@@ -54,9 +54,14 @@ func Login(c *gin.Context) {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
 		return
 	}
+
+	var userRole models.UserRole
+	dataBase.DB.Model(models.UserRole{}).Where("id = ?", foundUser[0].ID).First(&userRole)
+
 	access, refresh, err := auth.GenerateJWT(auth.TokenData{
 		Authorized: true,
 		Email:      user.Email,
+		Role:       userRole.Role,
 	})
 	if err != nil || refresh == "" || access == "" {
 		panic(err)
@@ -81,7 +86,7 @@ func Login(c *gin.Context) {
 			if err != nil {
 				panic(err)
 			}
-			c.JSON(http.StatusOK, models.UserInfo{
+			c.JSON(http.StatusOK, models.UserLoginInfo{
 				Info:         foundUser[0],
 				AccessToken:  jwtCheck.AccessToken,
 				RefreshToken: jwtCheck.RefreshToken,
@@ -101,7 +106,7 @@ func Login(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
-	c.JSON(http.StatusOK, models.UserInfo{
+	c.JSON(http.StatusOK, models.UserLoginInfo{
 		Info:         foundUser[0],
 		AccessToken:  access,
 		RefreshToken: refresh,
@@ -142,10 +147,10 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	var ifExist models.User
+	var ifExist []models.User
 
-	dataBase.DB.Where("email = ?", user.Email).First(&ifExist)
-	if ifExist.Email != "" {
+	dataBase.DB.Where("email = ?", user.Email).Find(&ifExist)
+	if len(ifExist) > 0 {
 		c.JSON(403, handlers.ErrMsg(false, "User with the same email already exist", errorcodes.UserAlreadyExist))
 		return
 	}
@@ -166,6 +171,15 @@ func Register(c *gin.Context) {
 		c.JSON(403, handlers.ErrMsg(false, "DB error, please check logs", errorcodes.DBError))
 		return
 	}
+
+	var createdUser []models.User
+	dataBase.DB.Model(models.User{}).Where("email = ?", completeUser.Email).Find(&createdUser)
+	if len(createdUser) <= 0 {
+		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, "Created user was not found in table 'users'", errorcodes.NotFoundInUsers))
+		return
+	}
+
+	dataBase.DB.Model(models.UserRole{}).Create(&models.UserRole{ID: createdUser[0].ID, Role: 0})
 
 	c.JSON(http.StatusOK, gin.H{
 		"error": false,
@@ -288,13 +302,16 @@ func Activate(c *gin.Context) {
 }
 
 func Refresh(c *gin.Context) {
-	token := auth.CheckAuth(c)
+	token := auth.CheckAuth(c, false)
 	if token == "" {
+		fmt.Println(5)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
 		return
 	}
+	fmt.Println(token)
 	data := auth.JwtParse(token)
 	if data.Email == nil {
+		fmt.Println(6)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
@@ -314,8 +331,10 @@ func Refresh(c *gin.Context) {
 	}
 
 	var user models.User
+	fmt.Println(data)
 	dataBase.DB.Model(models.User{}).Where("email = ?", data.Email).First(&user)
 	if user.ID == 0 {
+		fmt.Println(3)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
@@ -323,6 +342,7 @@ func Refresh(c *gin.Context) {
 	var foundToken models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
 	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
+		fmt.Println(2)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
@@ -330,11 +350,14 @@ func Refresh(c *gin.Context) {
 	if uint(foundToken.UserId) != user.ID {
 		panic("Check user access tokens. Found id != userID from jwt")
 	}
+
 	if auth.CheckTokenExpiration(dataToken.Token) {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
+
 	if dataToken.Token != foundToken.RefreshToken {
+		fmt.Println(1)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}

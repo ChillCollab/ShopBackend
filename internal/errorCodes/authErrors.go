@@ -17,4 +17,5 @@ const (
 	IncorrectActivationCode
 	PasswordShouldByIncludeSymbols
 	ActivationCodeExpired
+	NotFoundInUsers
 )

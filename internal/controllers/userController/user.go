@@ -14,7 +14,7 @@ import (
 )
 
 func Info(c *gin.Context) {
-	token := auth.CheckAuth(c)
+	token := auth.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
@@ -22,13 +22,24 @@ func Info(c *gin.Context) {
 	email := auth.JwtParse(token).Email
 	var users []models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", email).Find(&users)
+	if len(users) <= 0 {
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		return
+	}
+	var roles []models.UserRole
+	dataBase.DB.Model(models.UserRole{}).Where("id = ?", users[0].ID).Find(&roles)
 
-	c.JSON(http.StatusOK, users[0])
+	c.JSON(http.StatusOK, models.UserInfo{
+		Role: roles[0].Role,
+		User: users[0],
+	})
 }
 
 func ChangePassword(c *gin.Context) {
 	var passwordData models.ChangePassword
+
 	rawData, err := c.GetRawData()
+
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Pasing error", errorCodes.ParsingError))
 		return
@@ -42,7 +53,7 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	token := auth.CheckAuth(c)
+	token := auth.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return

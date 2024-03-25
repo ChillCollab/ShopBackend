@@ -23,7 +23,7 @@ func ifEmpty(value string, defaultValue string) string {
 }
 
 func Users(c *gin.Context) {
-	token := auth.CheckAuth(c)
+	token := auth.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
@@ -36,7 +36,7 @@ func Users(c *gin.Context) {
 
 func ChangeUser(c *gin.Context) {
 	var user models.ChangeUser
-	token := auth.CheckAuth(c)
+	token := auth.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
@@ -89,7 +89,7 @@ func ChangeUser(c *gin.Context) {
 }
 
 func DeleteUsers(c *gin.Context) {
-	token := auth.CheckAuth(c)
+	token := auth.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
