@@ -80,9 +80,11 @@ func JwtParse(jw string) jwtData {
 		auth := claims["authorized"]
 		email := claims["email"]
 		exp := claims["expired"]
+		role := claims["role"]
 		return jwtData{
 			Authorized: auth,
 			Email:      email,
+			Role:       role,
 			Expired:    exp,
 		}
 	}
@@ -91,9 +93,11 @@ func JwtParse(jw string) jwtData {
 
 func CheckAdmin(jw string) bool {
 	data := JwtParse(jw)
-	return data.Role != 0
+	if role, ok := data.Role.(float64); ok {
+		return int(role) == 1
+	}
+	return false
 }
-
 func generateToken(data TokenData, alive int, signingKey string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
@@ -134,19 +138,16 @@ func GetAuth(c *gin.Context) string {
 func CheckAuth(c *gin.Context, checkExpiried bool) string {
 	token := strings.Replace(c.GetHeader("Authorization"), "Bearer ", "", 1)
 	if token == "" {
-		fmt.Println(11)
 		return ""
 	}
 
 	var dbToken []models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&dbToken)
 	if len(dbToken) <= 0 {
-		fmt.Println(12)
 		return ""
 	}
 	if checkExpiried {
 		if expired := CheckTokenExpiration(token); expired {
-			fmt.Println(13)
 			return ""
 		}
 	}
@@ -157,7 +158,6 @@ func CheckAuth(c *gin.Context, checkExpiried bool) string {
 	var foundUsers []models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUsers)
 	if len(foundUsers) <= 0 {
-		fmt.Println(14)
 		return ""
 	}
 

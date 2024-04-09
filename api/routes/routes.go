@@ -20,6 +20,7 @@ func Routes(r *gin.Engine) {
 			auth.POST("/activate", authController.Activate)
 			auth.POST("/logout", authController.Logout)
 			auth.POST("/recovery", authController.Recovery)
+			auth.POST("/register/check", authController.CheckRegistrationCode)
 		}
 		user := api.Group("/user")
 		{

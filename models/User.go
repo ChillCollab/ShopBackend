@@ -62,6 +62,10 @@ type UserPass struct {
 	Updated string `json:"update"`
 }
 
+type RegistarionCodeBody struct {
+	Code string `json:"code"`
+}
+
 type UserLogin struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
