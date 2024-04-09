@@ -11,11 +11,39 @@ type User struct {
 	Updated string `json:"updated"`
 }
 
+type UserRole struct {
+	ID   uint `gorm:"unique" json:"id`
+	Role int  `json:"role"`
+}
+
 type UserInfo struct {
+	User
+	Role int `json:"role"`
+}
+
+type ChangePassword struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+type ChangeUser struct {
+	ID      uint   `gorm:"unique" json:"id"`
+	Login   string `json:"login"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Email   string `json:"email"`
+	Active  bool   `json:"active"`
+}
+
+type UserLoginInfo struct {
 	Info         User   `json:"user"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 	Alive        int    `json:"alive"`
+}
+
+type UsersArray struct {
+	ID []int `json:"id"`
 }
 
 type SendMail struct {
@@ -47,7 +75,7 @@ type RegToken struct {
 }
 
 type AccessToken struct {
-	UserId       string `json:"user_id`
+	UserId       uint   `json:"user_id`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
