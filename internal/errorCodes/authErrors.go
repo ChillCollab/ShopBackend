@@ -18,4 +18,6 @@ const (
 	PasswordShouldByIncludeSymbols
 	ActivationCodeExpired
 	NotFoundInUsers
+	NotFoundRegistrationCode
+	UserAlreadyRegistered
 )

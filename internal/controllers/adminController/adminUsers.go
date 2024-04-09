@@ -8,6 +8,7 @@ import (
 	"backend_v1/models"
 	"backend_v1/pkg/utils"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -94,6 +95,14 @@ func DeleteUsers(c *gin.Context) {
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
 	}
+
+	fmt.Println(auth.CheckAdmin(token))
+
+	if !auth.CheckAdmin(token) {
+		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		return
+	}
+
 	rawData, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parsing Error!", errorCodes.ParsingError))

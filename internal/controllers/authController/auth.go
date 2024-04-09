@@ -76,7 +76,6 @@ func Login(c *gin.Context) {
 		expRefresh := auth.CheckTokenExpiration(jwtCheck.RefreshToken)
 		expAccess := auth.CheckTokenExpiration(jwtCheck.AccessToken)
 		if expAccess || expRefresh {
-			fmt.Println(0)
 			dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(passCheck.UserId))).Delete(jwtCheck)
 		} else if len(foundUsr) <= 0 {
 			dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(passCheck.UserId))).Delete(jwtCheck)
@@ -92,7 +91,6 @@ func Login(c *gin.Context) {
 				RefreshToken: jwtCheck.RefreshToken,
 				Alive:        rem,
 			})
-			fmt.Println(1)
 			return
 		}
 	}
@@ -238,7 +236,7 @@ func Send(c *gin.Context) {
 
 	if utils.Send(
 		foundUser.Email,
-		"Welcome to Admin Panel!", "Your link for countinue is: https://"+os.Getenv("DOMAIN")+"/acc/activate/"+code+
+		"Welcome to Admin Panel!", "Your link for countinue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
 			"\n\nEmail: "+user.Email+
 			"\nLogin: "+foundUser.Name+
 			"\nName: "+foundUser.Name+
@@ -285,6 +283,19 @@ func Activate(c *gin.Context) {
 		c.JSON(401, handlers.ErrMsg(false, "Your activaton code was expired! Request a new activation code.", errorcodes.ActivationCodeExpired))
 		return
 	}
+
+	var foundUsers []models.User
+	dataBase.DB.Model(models.User{}).Where("id = ?", uint(activate.UserId)).Find(&foundUsers)
+	if len(foundUsers) <= 0 {
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "User not found", errorcodes.UserNotFound))
+		return
+	}
+
+	if foundUsers[0].Active {
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "User already registered", errorcodes.UserAlreadyRegistered))
+		return
+	}
+
 	var checkPass models.UserPass
 	dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate.UserId).First(&checkPass)
 	if checkPass.Pass != "" {
@@ -298,7 +309,7 @@ func Activate(c *gin.Context) {
 	})
 	dataBase.DB.Model(&models.User{}).Where("id = ?", activate.UserId).Update("active", true)
 
-	c.JSON(200, handlers.ErrMsg(true, "Account "+user.Email+" was successful activate!", 0))
+	c.JSON(200, handlers.ErrMsg(true, "Account "+foundUsers[0].Email+" was successful activate!", 0))
 }
 
 func Refresh(c *gin.Context) {
@@ -403,6 +414,61 @@ func Logout(c *gin.Context) {
 	c.JSON(200, handlers.ErrMsg(true, "Token deleted", 0))
 }
 
+func CheckRegistrationCode(c *gin.Context) {
+	var code models.RegistarionCodeBody
+
+	rawData, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		return
+	}
+	if err := utils.JsonChecker(code, rawData, c); err != "" {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
+		return
+	}
+	if err := json.Unmarshal(rawData, &code); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Parse error",
+		})
+		return
+	}
+
+	var foundCodes []models.RegToken
+
+	dataBase.DB.Model(models.RegToken{}).Where("code = ?", code.Code).Find(&foundCodes)
+	if len(foundCodes) <= 0 {
+		fmt.Println(1)
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Registration code not found", errorcodes.NotFoundRegistrationCode))
+		return
+	}
+
+	var user []models.User
+	dataBase.DB.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&user)
+	if len(user) <= 0 {
+		fmt.Println(2)
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Registration code not found", errorcodes.NotFoundRegistrationCode))
+		return
+	}
+
+	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", foundCodes[0]).Delete(foundCodes[0])
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Your activaton code was expired! Request a new activation code.", errorcodes.ActivationCodeExpired))
+		return
+	}
+
+	if user[0].Active {
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "User already registered", errorcodes.UserAlreadyRegistered))
+		return
+	}
+
+	c.JSON(http.StatusOK, models.User{
+		ID:      user[0].ID,
+		Name:    user[0].Name,
+		Surname: user[0].Surname,
+		Email:   user[0].Email,
+	})
+}
+
 func Recovery(c *gin.Context) {
 	var user models.SendMail
 
@@ -416,7 +482,7 @@ func Recovery(c *gin.Context) {
 		return
 	}
 	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(400, gin.H{
+		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Parse error",
 		})
 		return
@@ -454,7 +520,7 @@ func Recovery(c *gin.Context) {
 
 	if utils.Send(
 		foundUser.Email,
-		"Admin Panel password recovery!", "Your link for countinue is: https://"+os.Getenv("DOMAIN")+"/acc/activate/"+code+
+		"Admin Panel password recovery!", "Your link for countinue is:  "+os.Getenv("DOMAIN")+"/acc/activate/"+code+
 			"\n\nEmail: "+user.Email+
 			"\nLogin: "+foundUser.Name+
 			"\nName: "+foundUser.Name+
