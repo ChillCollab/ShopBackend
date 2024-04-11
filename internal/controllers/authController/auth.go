@@ -272,7 +272,7 @@ func Activate(c *gin.Context) {
 	}
 	digit, symb := utils.PasswordChecker(user.Password)
 	if !digit || !symb {
-		c.JSON(403, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
@@ -529,4 +529,51 @@ func Recovery(c *gin.Context) {
 		c.JSON(403, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
 		return
 	}
+}
+
+func RecoverySubmit(c *gin.Context) {
+	var recoveryBody models.RecoverySubmit
+
+	rawData, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		return
+	}
+
+	if err := utils.JsonChecker(models.RecoverySubmit{}, rawData, c); err != "" {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
+		return
+	}
+
+	if err := json.Unmarshal(rawData, &recoveryBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Parse error",
+		})
+		return
+	}
+
+	if recoveryBody.Code != "" || recoveryBody.Password != "" {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.CodeOrPasswordEmpty))
+		return
+	}
+
+	digit, symbols := utils.PasswordChecker(recoveryBody.Password)
+	if !digit || !symbols {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Code or password can't be empty", errorcodes.PasswordShouldByIncludeSymbols))
+		return
+	}
+
+	var foundCodes []models.RegToken
+	dataBase.DB.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).Find(&foundCodes)
+	if len(foundCodes) <= 0 || len(foundCodes) > 1 || foundCodes[0].Type != 1 {
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Recovery code was not found", errorcodes.RecoveryCodeNotFound))
+		return
+	}
+
+	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", foundCodes[0].Code).Delete(foundCodes[0])
+		c.JSON(401, handlers.ErrMsg(false, "Your recovery code was expired! Request a new recovery code.", errorcodes.RecoveryCodeExpired))
+		return
+	}
+
 }

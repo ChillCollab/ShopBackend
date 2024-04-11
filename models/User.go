@@ -21,11 +21,6 @@ type UserInfo struct {
 	Role int `json:"role"`
 }
 
-type ChangePassword struct {
-	OldPassword string `json:"old_password"`
-	NewPassword string `json:"new_password"`
-}
-
 type ChangeUser struct {
 	ID      uint   `gorm:"unique" json:"id"`
 	Login   string `json:"login"`
@@ -35,51 +30,11 @@ type ChangeUser struct {
 	Active  bool   `json:"active"`
 }
 
-type UserLoginInfo struct {
-	Info         User   `json:"user"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-	Alive        int    `json:"alive"`
-}
-
 type UsersArray struct {
 	ID []int `json:"id"`
 }
-
-type SendMail struct {
-	Email string `json:"email"`
-}
-
-type Activate struct {
-	Code     string `json:"code"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
 type UserPass struct {
 	UserId  uint   `gorm:"unique" json:"user_id"`
 	Pass    string `json:"pass"`
 	Updated string `json:"update"`
-}
-
-type RegistarionCodeBody struct {
-	Code string `json:"code"`
-}
-
-type UserLogin struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type RegToken struct {
-	UserId  int    `json:"user_id"`
-	Type    int    `json:"type"`
-	Code    string `json:"code"`
-	Created string `json:"created"`
-}
-
-type AccessToken struct {
-	UserId       uint   `json:"user_id`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
 }
