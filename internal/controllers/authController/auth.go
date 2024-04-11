@@ -129,7 +129,7 @@ func Register(c *gin.Context) {
 			"error": "Name or Surname is not correct",
 		})
 		return
-	} else if user.Email == "" {
+	} else if !utils.MailValidator(user.Email) {
 		c.JSON(400, gin.H{
 			"error": "Your email is not correct. Please write the correct email",
 		})
@@ -215,11 +215,16 @@ func Send(c *gin.Context) {
 		return
 	}
 
-	var checkUser models.RegToken
+	var checkUser []models.RegToken
 
-	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).First(&checkUser)
-	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
-		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
+	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
+	if len(checkUser) <= 0 {
+		c.JSON(403, handlers.ErrMsg(false, "Activation code was not found", errorcodes.ActivationCodeNotFound))
+		return
+	}
+
+	if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
+		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser[0].UserId).Delete(models.RegToken{UserId: checkUser[0].UserId, Type: 0})
 	} else {
 		c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
 		return
@@ -271,21 +276,21 @@ func Activate(c *gin.Context) {
 		return
 	}
 
-	var activate models.RegToken
+	var activate []models.RegToken
 
-	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", user.Code).First(&activate)
-	if activate.Code == "" {
+	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", user.Code).Find(&activate)
+	if len(activate) <= 0 || activate[0].Type != 0 {
 		c.JSON(403, handlers.ErrMsg(false, "Activation code was not found", errorcodes.ActivationCodeNotFound))
 		return
 	}
-	if activate.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
-		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate.Code).Delete(activate)
+	if activate[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate[0].Code).Delete(activate)
 		c.JSON(401, handlers.ErrMsg(false, "Your activaton code was expired! Request a new activation code.", errorcodes.ActivationCodeExpired))
 		return
 	}
 
 	var foundUsers []models.User
-	dataBase.DB.Model(models.User{}).Where("id = ?", uint(activate.UserId)).Find(&foundUsers)
+	dataBase.DB.Model(models.User{}).Where("id = ?", uint(activate[0].UserId)).Find(&foundUsers)
 	if len(foundUsers) <= 0 {
 		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "User not found", errorcodes.UserNotFound))
 		return
@@ -296,18 +301,18 @@ func Activate(c *gin.Context) {
 		return
 	}
 
-	var checkPass models.UserPass
-	dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate.UserId).First(&checkPass)
-	if checkPass.Pass != "" {
-		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate.UserId).Delete(checkPass)
+	var checkPass []models.UserPass
+	dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate[0].UserId).Find(&checkPass)
+	if checkPass[0].Pass != "" {
+		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate[0].UserId).Delete(checkPass)
 	}
-	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate.Code).Delete(activate)
+	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate[0].Code).Delete(activate)
 	dataBase.DB.Model(&models.UserPass{}).Create(models.UserPass{
-		UserId:  uint(activate.UserId),
+		UserId:  uint(activate[0].UserId),
 		Pass:    utils.Hash(user.Password),
 		Updated: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
 	})
-	dataBase.DB.Model(&models.User{}).Where("id = ?", activate.UserId).Update("active", true)
+	dataBase.DB.Model(&models.User{}).Where("id = ?", activate[0].UserId).Update("active", true)
 
 	c.JSON(200, handlers.ErrMsg(true, "Account "+foundUsers[0].Email+" was successful activate!", 0))
 }
@@ -315,14 +320,11 @@ func Activate(c *gin.Context) {
 func Refresh(c *gin.Context) {
 	token := auth.CheckAuth(c, false)
 	if token == "" {
-		fmt.Println(5)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
 		return
 	}
-	fmt.Println(token)
 	data := auth.JwtParse(token)
 	if data.Email == nil {
-		fmt.Println(6)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
@@ -342,10 +344,8 @@ func Refresh(c *gin.Context) {
 	}
 
 	var user models.User
-	fmt.Println(data)
 	dataBase.DB.Model(models.User{}).Where("email = ?", data.Email).First(&user)
 	if user.ID == 0 {
-		fmt.Println(3)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
@@ -353,7 +353,6 @@ func Refresh(c *gin.Context) {
 	var foundToken models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
 	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
-		fmt.Println(2)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
@@ -368,7 +367,6 @@ func Refresh(c *gin.Context) {
 	}
 
 	if dataToken.Token != foundToken.RefreshToken {
-		fmt.Println(1)
 		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
@@ -436,8 +434,7 @@ func CheckRegistrationCode(c *gin.Context) {
 	var foundCodes []models.RegToken
 
 	dataBase.DB.Model(models.RegToken{}).Where("code = ?", code.Code).Find(&foundCodes)
-	if len(foundCodes) <= 0 {
-		fmt.Println(1)
+	if len(foundCodes) <= 0 || foundCodes[0].Type != 0 {
 		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Registration code not found", errorcodes.NotFoundRegistrationCode))
 		return
 	}
@@ -445,7 +442,6 @@ func CheckRegistrationCode(c *gin.Context) {
 	var user []models.User
 	dataBase.DB.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&user)
 	if len(user) <= 0 {
-		fmt.Println(2)
 		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Registration code not found", errorcodes.NotFoundRegistrationCode))
 		return
 	}
