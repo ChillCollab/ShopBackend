@@ -305,8 +305,13 @@ func Activate(c *gin.Context) {
 
 	var checkPass []models.UserPass
 	dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate[0].UserId).Find(&checkPass)
-	if checkPass[0].Pass != "" {
-		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate[0].UserId).Delete(checkPass)
+	if len(checkPass) == 1 {
+		if checkPass[0].Pass != "" {
+			dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate[0].UserId).Delete(checkPass)
+		}
+	} else if len(checkPass) > 1 {
+		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
+		return
 	}
 	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate[0].Code).Delete(activate)
 	dataBase.DB.Model(&models.UserPass{}).Create(models.UserPass{
