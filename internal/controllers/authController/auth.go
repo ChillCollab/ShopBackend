@@ -218,16 +218,18 @@ func Send(c *gin.Context) {
 	var checkUser []models.RegToken
 
 	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
-	if len(checkUser) <= 0 {
-		c.JSON(403, handlers.ErrMsg(false, "Activation code was not found", errorcodes.ActivationCodeNotFound))
+	if len(checkUser) > 1 {
+		dataBase.DB.Model(&checkUser).Delete(checkUser)
+		c.JSON(403, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
 		return
 	}
-
-	if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
-		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser[0].UserId).Delete(models.RegToken{UserId: checkUser[0].UserId, Type: 0})
-	} else {
-		c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
-		return
+	if len(checkUser) > 0 {
+		if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
+			dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser[0].UserId).Delete(models.RegToken{UserId: checkUser[0].UserId, Type: 0})
+		} else {
+			c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
+			return
+		}
 	}
 
 	code := utils.CodeGen()
