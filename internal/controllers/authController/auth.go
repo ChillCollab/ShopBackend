@@ -218,16 +218,18 @@ func Send(c *gin.Context) {
 	var checkUser []models.RegToken
 
 	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
-	if len(checkUser) <= 0 {
-		c.JSON(403, handlers.ErrMsg(false, "Activation code was not found", errorcodes.ActivationCodeNotFound))
+	if len(checkUser) > 1 {
+		dataBase.DB.Model(&checkUser).Delete(checkUser)
+		c.JSON(403, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
 		return
 	}
-
-	if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
-		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser[0].UserId).Delete(models.RegToken{UserId: checkUser[0].UserId, Type: 0})
-	} else {
-		c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
-		return
+	if len(checkUser) > 0 {
+		if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
+			dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser[0].UserId).Delete(models.RegToken{UserId: checkUser[0].UserId, Type: 0})
+		} else {
+			c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
+			return
+		}
 	}
 
 	code := utils.CodeGen()
@@ -272,7 +274,7 @@ func Activate(c *gin.Context) {
 	}
 	digit, symb := utils.PasswordChecker(user.Password)
 	if !digit || !symb {
-		c.JSON(403, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
@@ -529,4 +531,80 @@ func Recovery(c *gin.Context) {
 		c.JSON(403, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
 		return
 	}
+}
+
+func RecoverySubmit(c *gin.Context) {
+	var recoveryBody models.RecoverySubmit
+
+	rawData, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		return
+	}
+
+	if err := utils.JsonChecker(recoveryBody, rawData, c); err != "" {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
+		return
+	}
+
+	if err := json.Unmarshal(rawData, &recoveryBody); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Parse error",
+		})
+		return
+	}
+
+	if recoveryBody.Code == "" || recoveryBody.Password == "" {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Code or password can't be empty", errorcodes.CodeOrPasswordEmpty))
+		return
+	}
+
+	digit, symbols := utils.PasswordChecker(recoveryBody.Password)
+	if !digit || !symbols {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.PasswordShouldByIncludeSymbols))
+		return
+	}
+
+	var foundCodes []models.RegToken
+	dataBase.DB.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).Find(&foundCodes)
+	if len(foundCodes) <= 0 || len(foundCodes) > 1 || foundCodes[0].Type != 1 {
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Recovery code was not found", errorcodes.RecoveryCodeNotFound))
+		return
+	}
+
+	var foundUser []models.User
+	dataBase.DB.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&foundUser)
+	if len(foundUser) <= 0 || len(foundUser) > 1 {
+		dataBase.DB.Model(models.RegToken{}).Delete(foundCodes)
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Recovery code was not found", errorcodes.RecoveryCodeNotFound))
+		return
+	}
+
+	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", foundCodes[0].Code).Delete(foundCodes[0])
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Your recovery code was expired! Request a new recovery code.", errorcodes.RecoveryCodeExpired))
+		return
+	}
+
+	hashPassword := utils.Hash(recoveryBody.Password)
+	fmt.Println(len(foundUser))
+
+	var foundPass []models.UserPass
+	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", foundUser[0].ID).Find(&foundPass)
+	fmt.Print(len(foundPass))
+	if len(foundPass) <= 0 {
+		dataBase.DB.Model(models.UserPass{}).Create(models.UserPass{
+			UserId:  foundUser[0].ID,
+			Pass:    hashPassword,
+			Updated: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
+		})
+	} else if len(foundPass) == 1 {
+		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("pass", hashPassword)
+		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("updated", time.Now().UTC().Format(os.Getenv("DATE_FORMAT")))
+	} else {
+		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
+		return
+	}
+
+	c.JSON(http.StatusOK, handlers.ErrMsg(true, "User password reseted", 0))
 }

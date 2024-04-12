@@ -5,4 +5,5 @@ const (
 	DBError
 	ParsingError
 	UnmarshalError
+	MultipleData
 )

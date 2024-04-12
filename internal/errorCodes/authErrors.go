@@ -20,4 +20,7 @@ const (
 	NotFoundInUsers
 	NotFoundRegistrationCode
 	UserAlreadyRegistered
+	CodeOrPasswordEmpty
+	RecoveryCodeNotFound
+	RecoveryCodeExpired
 )
