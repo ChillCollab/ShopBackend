@@ -36,5 +36,5 @@ type UsersArray struct {
 type UserPass struct {
 	UserId  uint   `gorm:"unique" json:"user_id"`
 	Pass    string `json:"pass"`
-	Updated string `json:"update"`
+	Updated string `json:"updated"`
 }
