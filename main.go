@@ -2,6 +2,7 @@ package main
 
 import (
 	"backend_v1/api/routes"
+	"backend_v1/docs"
 	dataBase "backend_v1/internal/dataBase/models"
 	"log"
 	"os"
@@ -9,10 +10,14 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
 	r := gin.Default()
+
+	docs.SwaggerInfo.BasePath = "/api_v1"
 
 	config := cors.DefaultConfig()
 	config.AllowOrigins = []string{"http://127.0.0.1:5173", "http://localhost:5173", "http://127.0.0.1:5173/admin"}
@@ -37,6 +42,8 @@ func main() {
 	dataBase.InitDB(dbConfig)
 
 	routes.Routes(r)
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
 
 	runErr := r.Run(":" + os.Getenv("APP_PORT"))
 	if runErr != nil {
