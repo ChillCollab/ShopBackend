@@ -7,6 +7,18 @@ type UserLoginInfo struct {
 	Alive        int    `json:"alive"`
 }
 
+type UserRegister struct {
+	Login   string `json:"login"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Email   string `json:"email"`
+}
+
+type UserRegisterComplete struct {
+	Error bool `json:"error"`
+	User  User `json:"user"`
+}
+
 type SendMail struct {
 	Email string `json:"email"`
 }
@@ -17,8 +29,20 @@ type Activate struct {
 	Password string `json:"password"`
 }
 
-type RegistarionCodeBody struct {
+type ActivateBody struct {
+	Code     string `json:"code"`
+	Password string `json:"password"`
+}
+
+type RegistrationCodeBody struct {
 	Code string `json:"code"`
+}
+
+type CodeCheckResponse struct {
+	ID      uint   `gorm:"unique" json:"id"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Email   string `json:"email"`
 }
 
 type UserLogin struct {

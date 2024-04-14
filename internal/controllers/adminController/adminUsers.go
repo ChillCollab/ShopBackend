@@ -8,7 +8,6 @@ import (
 	"backend_v1/models"
 	"backend_v1/pkg/utils"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -23,10 +22,19 @@ func ifEmpty(value string, defaultValue string) string {
 	return value
 }
 
+// @Summary Get all users
+// @Description Endpoint to get all users
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Success 200 array models.User
+// @Failure 401 object models.ErrorResponse
+// @Failure 500
+// @Router /admin/users [get]
 func Users(c *gin.Context) {
 	token := auth.CheckAuth(c, true)
 	if token == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
 	}
 	var users []models.User
@@ -35,11 +43,22 @@ func Users(c *gin.Context) {
 	c.JSON(http.StatusOK, users)
 }
 
+// @Summary Change user data
+// @Description Endpoint to change user data. Request must be include "id"
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param body body models.ChangeUser true "request body"
+// @Success 200 array models.SuccessResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 500
+// @Router /admin/user/change [post]
 func ChangeUser(c *gin.Context) {
 	var user models.ChangeUser
 	token := auth.CheckAuth(c, true)
 	if token == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
 	}
 
@@ -89,17 +108,26 @@ func ChangeUser(c *gin.Context) {
 	c.JSON(http.StatusOK, handlers.ErrMsg(true, "Account updated", 0))
 }
 
+// @Summary Delete user account
+// @Description Endpoint to delete user account
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param body body models.UsersArray true "request body"
+// @Success 200 array models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 500
+// @Router /admin/users/delete [delete]
 func DeleteUsers(c *gin.Context) {
 	token := auth.CheckAuth(c, true)
 	if token == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
 	}
 
-	fmt.Println(auth.CheckAdmin(token))
-
 	if !auth.CheckAdmin(token) {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
 	}
 

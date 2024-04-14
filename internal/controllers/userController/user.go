@@ -13,17 +13,27 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Summary Get user info
+// @Description Endpoint to get user info
+// @Tags User
+// @Accept json
+// @Produce json
+// @Success 200 array models.UserInfo
+// @Failure 401 object models.ErrorResponse
+// @Failure 500
+// @Security ApiKeyAuth
+// @Router /user/info [get]
 func Info(c *gin.Context) {
 	token := auth.CheckAuth(c, true)
 	if token == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
 	}
 	email := auth.JwtParse(token).Email
 	var users []models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", email).Find(&users)
 	if len(users) <= 0 {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
 	}
 	var roles []models.UserRole
@@ -35,6 +45,18 @@ func Info(c *gin.Context) {
 	})
 }
 
+// @Summary Change user password
+// @Description Endpoint to change user password
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param body body models.ChangePassword true "request body"
+// @Success 200 array models.SuccessResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 500
+// @Security ApiKeyAuth
+// @Router /user/changepass [post]
 func ChangePassword(c *gin.Context) {
 	var passwordData models.ChangePassword
 
@@ -65,7 +87,7 @@ func ChangePassword(c *gin.Context) {
 	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", users[0].ID).Find(&userPass)
 
 	if len(userPass) <= 0 {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
 		return
 	} else if len(userPass) > 1 {
 		panic("duplicate data")

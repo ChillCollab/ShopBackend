@@ -1,18 +1,20 @@
 package handlers
 
-import "github.com/gin-gonic/gin"
+import (
+	"backend_v1/models"
+)
 
-func ErrMsg(success bool, message string, code int) gin.H {
+func ErrMsg(success bool, message string, code int) interface{} {
 	if code == 0 {
-		return gin.H{
-			"success": success,
-			"message": message,
+		return models.SuccessResponse{
+			Success: success,
+			Message: message,
 		}
 	} else {
-		return gin.H{
-			"code":    code,
-			"success": success,
-			"message": message,
+		return models.ErrorResponse{
+			Success: success,
+			Message: message,
+			Code:    code,
 		}
 	}
 }

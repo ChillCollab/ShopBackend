@@ -17,6 +17,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Summary Auth into account
+// @Description Endpoint to login into account
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.UserLogin true "request body"
+// @Success 200 object models.UserLoginInfo
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Router /auth/login [post]
 func Login(c *gin.Context) {
 	var user models.UserLogin
 
@@ -112,32 +122,35 @@ func Login(c *gin.Context) {
 	})
 }
 
+// @Summary Register account
+// @Description Endpoint to register a new user account
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.UserRegister true "request body"
+// @Success 200 object models.UserRegisterComplete
+// @Failure 400 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 500
+// @Router /auth/register [post]
 func Register(c *gin.Context) {
 
-	var user models.User
+	var user models.UserRegister
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(400, gin.H{
-			"error": "Parse error",
-		})
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
 		return
 	}
 
 	if user.Name == "" || user.Surname == "" {
-		c.JSON(400, gin.H{
-			"error": "Name or Surname is not correct",
-		})
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Name or Surname is not correct", errorcodes.NameOfSurnameIncorrect))
 		return
 	} else if !utils.MailValidator(user.Email) {
-		c.JSON(400, gin.H{
-			"error": "Your email is not correct. Please write the correct email",
-		})
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Your email is not correct. Please write the correct email", errorcodes.IncorrectEmail))
 		return
 	} else if user.Login == "" {
-		c.JSON(400, gin.H{
-			"error": "You need to send Login",
-		})
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Login can't be empty", errorcodes.LoginCanBeEmpty))
 		return
 	}
 	if valid := utils.MailValidator(user.Email); !valid {
@@ -149,7 +162,7 @@ func Register(c *gin.Context) {
 
 	dataBase.DB.Where("email = ?", user.Email).Find(&ifExist)
 	if len(ifExist) > 0 {
-		c.JSON(403, handlers.ErrMsg(false, "User with the same email already exist", errorcodes.UserAlreadyExist))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "User with the same email already exist", errorcodes.UserAlreadyExist))
 		return
 	}
 
@@ -166,7 +179,7 @@ func Register(c *gin.Context) {
 
 	if create.Error != nil {
 		fmt.Println("DB Error:", create.Error)
-		c.JSON(403, handlers.ErrMsg(false, "DB error, please check logs", errorcodes.DBError))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "DB error, please check logs", errorcodes.DBError))
 		return
 	}
 
@@ -179,12 +192,24 @@ func Register(c *gin.Context) {
 
 	dataBase.DB.Model(models.UserRole{}).Create(&models.UserRole{ID: createdUser[0].ID, Role: 0})
 
-	c.JSON(http.StatusOK, gin.H{
-		"error": false,
-		"user":  completeUser,
+	c.JSON(http.StatusOK, models.UserRegisterComplete{
+		Error: false,
+		User:  completeUser,
 	})
 }
 
+// @Summary Send register email
+// @Description Endpoint to send register email to submit registration
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.SendMail true "request body"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
+// @Failure 500
+// @Router /auth/activate/send [post]
 func Send(c *gin.Context) {
 	var user models.SendMail
 
@@ -198,20 +223,18 @@ func Send(c *gin.Context) {
 		return
 	}
 	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(400, gin.H{
-			"error": "Parse error",
-		})
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
 		return
 	}
 	if user.Email == "" {
-		c.JSON(401, handlers.ErrMsg(false, "User was not registered", errorcodes.UserNotFound))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "User was not registered", errorcodes.UserNotFound))
 		return
 	}
 
 	var foundUser models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(403, handlers.ErrMsg(false, "User was not found", errorcodes.UserNotFound))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "User was not found", errorcodes.UserNotFound))
 		return
 	}
 
@@ -220,14 +243,14 @@ func Send(c *gin.Context) {
 	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
 	if len(checkUser) > 1 {
 		dataBase.DB.Model(&checkUser).Delete(checkUser)
-		c.JSON(403, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
 		return
 	}
 	if len(checkUser) > 0 {
 		if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 			dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser[0].UserId).Delete(models.RegToken{UserId: checkUser[0].UserId, Type: 0})
 		} else {
-			c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
 			return
 		}
 	}
@@ -250,26 +273,38 @@ func Send(c *gin.Context) {
 			"\nSurname: "+foundUser.Surname+
 			"\nCreated: "+foundUser.Created,
 	) {
-		c.JSON(200, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
+		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {
-		c.JSON(403, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
 		return
 	}
 }
 
+// @Summary Activate account
+// @Description Endpoint to activate account by registration code
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.ActivateBody true "request body"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
+// @Failure 500
+// @Router /auth/activate [post]
 func Activate(c *gin.Context) {
-	var user models.Activate
+	var user models.ActivateBody
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		panic(err)
 	}
 	if user.Code == "" {
-		c.JSON(404, handlers.ErrMsg(false, "Incorrect activation code!", errorcodes.IncorrectActivationCode))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Incorrect activation code!", errorcodes.IncorrectActivationCode))
 		return
 	}
 	if user.Password == "" {
-		c.JSON(403, handlers.ErrMsg(false, "Password can't be null", errorcodes.NameOfSurnameIncorrect))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Password can't be null", errorcodes.NameOfSurnameIncorrect))
 		return
 	}
 	digit, symb := utils.PasswordChecker(user.Password)
@@ -282,12 +317,12 @@ func Activate(c *gin.Context) {
 
 	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", user.Code).Find(&activate)
 	if len(activate) <= 0 || activate[0].Type != 0 {
-		c.JSON(403, handlers.ErrMsg(false, "Activation code was not found", errorcodes.ActivationCodeNotFound))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Activation code was not found", errorcodes.ActivationCodeNotFound))
 		return
 	}
 	if activate[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate[0].Code).Delete(activate)
-		c.JSON(401, handlers.ErrMsg(false, "Your activaton code was expired! Request a new activation code.", errorcodes.ActivationCodeExpired))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Your activaton code was expired! Request a new activation code.", errorcodes.ActivationCodeExpired))
 		return
 	}
 
@@ -321,18 +356,29 @@ func Activate(c *gin.Context) {
 	})
 	dataBase.DB.Model(&models.User{}).Where("id = ?", activate[0].UserId).Update("active", true)
 
-	c.JSON(200, handlers.ErrMsg(true, "Account "+foundUsers[0].Email+" was successful activate!", 0))
+	c.JSON(http.StatusOK, handlers.ErrMsg(true, "Account "+foundUsers[0].Email+" was successful activate!", 0))
 }
 
+// @Summary Get new access token
+// @Description Endpoint to get a new access token by refresh token
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body auth.Token true "request body"
+// @Success 200 object models.AccessToken
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 500
+// @Router /auth/refresh [post]
 func Refresh(c *gin.Context) {
 	token := auth.CheckAuth(c, false)
 	if token == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
 		return
 	}
 	data := auth.JwtParse(token)
 	if data.Email == nil {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	rawData, err := c.GetRawData()
@@ -353,14 +399,14 @@ func Refresh(c *gin.Context) {
 	var user models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", data.Email).First(&user)
 	if user.ID == 0 {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 
 	var foundToken models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
 	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 
@@ -369,12 +415,12 @@ func Refresh(c *gin.Context) {
 	}
 
 	if auth.CheckTokenExpiration(dataToken.Token) {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 
 	if dataToken.Token != foundToken.RefreshToken {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 
@@ -397,30 +443,52 @@ func Refresh(c *gin.Context) {
 	c.JSON(http.StatusOK, newTokens)
 }
 
+// @Summary Logout from account
+// @Description Endpoint to logout from account
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Success 200 object models.SuccessResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 500
+// @Router /auth/logout [post]
 func Logout(c *gin.Context) {
 	token := auth.GetAuth(c)
 	if token == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	var foundToken []models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&foundToken)
 	if len(foundToken) == 0 {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
 		return
 	}
 	if len(foundToken) > 1 {
-		if err := fmt.Errorf("a lot of access tokens for same user"); err != nil {
-			panic(err)
-		}
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
+		return
 	}
 
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
-	c.JSON(200, handlers.ErrMsg(true, "Token deleted", 0))
+	c.JSON(http.StatusOK, handlers.ErrMsg(true, "Successful logout", 0))
 }
 
+// @Summary Check registration code if exist
+// @Description Endpoint to check registration code if exist
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.RegistrationCodeBody true "request body"
+// @Success 200 object models.CodeCheckResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
+// @Failure 500
+// @Router /auth/register/check [post]
 func CheckRegistrationCode(c *gin.Context) {
-	var code models.RegistarionCodeBody
+	var code models.RegistrationCodeBody
 
 	rawData, err := c.GetRawData()
 	if err != nil {
@@ -464,7 +532,7 @@ func CheckRegistrationCode(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.User{
+	c.JSON(http.StatusOK, models.CodeCheckResponse{
 		ID:      user[0].ID,
 		Name:    user[0].Name,
 		Surname: user[0].Surname,
@@ -472,6 +540,17 @@ func CheckRegistrationCode(c *gin.Context) {
 	})
 }
 
+// @Summary Recovery user account
+// @Description Endpoint to recovery user account by email
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.SendMail true "request body"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 500
+// @Router /auth/recovery [post]
 func Recovery(c *gin.Context) {
 	var user models.SendMail
 
@@ -491,14 +570,14 @@ func Recovery(c *gin.Context) {
 		return
 	}
 	if user.Email == "" {
-		c.JSON(401, handlers.ErrMsg(false, "Field 'Email' can't be empty!", errorcodes.EmptyEmail))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Field 'Email' can't be empty!", errorcodes.EmptyEmail))
 		return
 	}
 
 	var foundUser models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(200, handlers.ErrMsg(true, "Email sent to "+user.Email, 0))
+		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+user.Email, 0))
 		return
 	}
 
@@ -508,7 +587,7 @@ func Recovery(c *gin.Context) {
 	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
 	} else {
-		c.JSON(403, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
 		return
 	}
 
@@ -530,14 +609,26 @@ func Recovery(c *gin.Context) {
 			"\nSurname: "+foundUser.Surname+
 			"\nCreated: "+foundUser.Created,
 	) {
-		c.JSON(200, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
+		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {
-		c.JSON(403, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
 		return
 	}
 }
 
+// @Summary Recovery submit
+// @Description Endpoint to submit recovery account and create a new password for account
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body models.RecoverySubmit true "request body"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
+// @Failure 500
+// @Router /auth/recovery/submit [post]
 func RecoverySubmit(c *gin.Context) {
 	var recoveryBody models.RecoverySubmit
 
