@@ -787,6 +787,9 @@ const docTemplate = `{
                 "name": {
                     "type": "string"
                 },
+                "role": {
+                    "type": "integer"
+                },
                 "surname": {
                     "type": "string"
                 }

@@ -28,6 +28,7 @@ type ChangeUser struct {
 	Surname string `json:"surname"`
 	Email   string `json:"email"`
 	Active  bool   `json:"active"`
+	Role    int    `json:"role"`
 }
 
 type UsersArray struct {
