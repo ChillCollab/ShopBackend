@@ -203,6 +203,8 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
       summary: Change user data
       tags:
       - Admin
@@ -226,6 +228,8 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
       summary: Get all users
       tags:
       - Admin
@@ -260,6 +264,8 @@ paths:
             $ref: '#/definitions/models.ErrorResponse'
         "500":
           description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
       summary: Delete user account
       tags:
       - Admin
@@ -626,7 +632,6 @@ paths:
       - User
 securityDefinitions:
   ApiKeyAuth:
-    description: asdasdas
     in: header
     name: Authorization
     type: apiKey

@@ -17,6 +17,11 @@ const docTemplate = `{
     "paths": {
         "/admin/user/change": {
             "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Endpoint to change user data. Request must be include \"id\"",
                 "consumes": [
                     "application/json"
@@ -69,6 +74,11 @@ const docTemplate = `{
         },
         "/admin/users": {
             "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Endpoint to get all users",
                 "consumes": [
                     "application/json"
@@ -104,6 +114,11 @@ const docTemplate = `{
         },
         "/admin/users/delete": {
             "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
                 "description": "Endpoint to delete user account",
                 "consumes": [
                     "application/json"
@@ -977,7 +992,6 @@ const docTemplate = `{
     },
     "securityDefinitions": {
         "ApiKeyAuth": {
-            "description": "asdasdas",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"

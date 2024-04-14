@@ -30,6 +30,7 @@ func ifEmpty(value string, defaultValue string) string {
 // @Success 200 array models.User
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
+// @Security ApiKeyAuth
 // @Router /admin/users [get]
 func Users(c *gin.Context) {
 	token := auth.CheckAuth(c, true)
@@ -53,6 +54,7 @@ func Users(c *gin.Context) {
 // @Failure 401 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
+// @Security ApiKeyAuth
 // @Router /admin/user/change [post]
 func ChangeUser(c *gin.Context) {
 	var user models.ChangeUser
@@ -118,6 +120,7 @@ func ChangeUser(c *gin.Context) {
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
+// @Security ApiKeyAuth
 // @Router /admin/users/delete [delete]
 func DeleteUsers(c *gin.Context) {
 	token := auth.CheckAuth(c, true)
