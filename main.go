@@ -43,7 +43,10 @@ func main() {
 
 	routes.Routes(r)
 
-	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
+	r.GET("/swagger/*any",
+		ginSwagger.WrapHandler(swaggerfiles.Handler,
+			ginSwagger.DefaultModelsExpandDepth(1)),
+	)
 
 	runErr := r.Run(":" + os.Getenv("APP_PORT"))
 	if runErr != nil {

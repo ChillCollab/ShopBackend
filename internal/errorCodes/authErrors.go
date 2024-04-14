@@ -23,4 +23,5 @@ const (
 	CodeOrPasswordEmpty
 	RecoveryCodeNotFound
 	RecoveryCodeExpired
+	LoginCanBeEmpty
 )
