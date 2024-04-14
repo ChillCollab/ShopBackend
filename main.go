@@ -14,6 +14,10 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
+// @securityDefinitions.apikey ApiKeyAuth
+// @in header
+// @name Authorization
+
 func main() {
 	r := gin.Default()
 
@@ -45,7 +49,9 @@ func main() {
 
 	r.GET("/swagger/*any",
 		ginSwagger.WrapHandler(swaggerfiles.Handler,
-			ginSwagger.DefaultModelsExpandDepth(1)),
+			ginSwagger.DefaultModelsExpandDepth(1),
+			ginSwagger.PersistAuthorization(true),
+		),
 	)
 
 	runErr := r.Run(":" + os.Getenv("APP_PORT"))

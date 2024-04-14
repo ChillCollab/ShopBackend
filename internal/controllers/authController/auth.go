@@ -286,7 +286,7 @@ func Send(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.Activate true "request body"
+// @Param body body models.ActivateBody true "request body"
 // @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
@@ -294,7 +294,7 @@ func Send(c *gin.Context) {
 // @Failure 500
 // @Router /auth/activate [post]
 func Activate(c *gin.Context) {
-	var user models.Activate
+	var user models.ActivateBody
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		panic(err)
@@ -622,7 +622,7 @@ func Recovery(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.SendMail true "request body"
+// @Param body body models.RecoverySubmit true "request body"
 // @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse

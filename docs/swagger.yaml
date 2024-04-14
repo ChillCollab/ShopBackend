@@ -13,13 +13,33 @@ definitions:
       userId:
         type: integer
     type: object
-  models.Activate:
+  models.ActivateBody:
     properties:
       code:
         type: string
+      password:
+        type: string
+    type: object
+  models.ChangePassword:
+    properties:
+      new_password:
+        type: string
+      old_password:
+        type: string
+    type: object
+  models.ChangeUser:
+    properties:
+      active:
+        type: boolean
       email:
         type: string
-      password:
+      id:
+        type: integer
+      login:
+        type: string
+      name:
+        type: string
+      surname:
         type: string
     type: object
   models.CodeCheckResponse:
@@ -41,6 +61,13 @@ definitions:
         type: string
       success:
         type: boolean
+    type: object
+  models.RecoverySubmit:
+    properties:
+      code:
+        type: string
+      password:
+        type: string
     type: object
   models.RegistrationCodeBody:
     properties:
@@ -73,6 +100,27 @@ definitions:
         type: string
       name:
         type: string
+      surname:
+        type: string
+      updated:
+        type: string
+    type: object
+  models.UserInfo:
+    properties:
+      active:
+        type: boolean
+      created:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      login:
+        type: string
+      name:
+        type: string
+      role:
+        type: integer
       surname:
         type: string
       updated:
@@ -114,9 +162,107 @@ definitions:
       user:
         $ref: '#/definitions/models.User'
     type: object
+  models.UsersArray:
+    properties:
+      id:
+        items:
+          type: integer
+        type: array
+    type: object
 info:
   contact: {}
 paths:
+  /admin/user/change:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint to change user data. Request must be include "id"
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangeUser'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SuccessResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      summary: Change user data
+      tags:
+      - Admin
+  /admin/users:
+    get:
+      consumes:
+      - application/json
+      description: Endpoint to get all users
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.User'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      summary: Get all users
+      tags:
+      - Admin
+  /admin/users/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Endpoint to delete user account
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.UsersArray'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SuccessResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      summary: Delete user account
+      tags:
+      - Admin
   /auth/activate:
     post:
       consumes:
@@ -128,7 +274,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.Activate'
+          $ref: '#/definitions/models.ActivateBody'
       produces:
       - application/json
       responses:
@@ -288,7 +434,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.SendMail'
+          $ref: '#/definitions/models.RecoverySubmit'
       produces:
       - application/json
       responses:
@@ -417,4 +563,71 @@ paths:
       summary: Check registration code if exist
       tags:
       - Auth
+  /user/changepass:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint to change user password
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangePassword'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SuccessResponse'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Change user password
+      tags:
+      - User
+  /user/info:
+    get:
+      consumes:
+      - application/json
+      description: Endpoint to get user info
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.UserInfo'
+            type: array
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Get user info
+      tags:
+      - User
+securityDefinitions:
+  ApiKeyAuth:
+    description: asdasdas
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"

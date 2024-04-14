@@ -29,6 +29,11 @@ type Activate struct {
 	Password string `json:"password"`
 }
 
+type ActivateBody struct {
+	Code     string `json:"code"`
+	Password string `json:"password"`
+}
+
 type RegistrationCodeBody struct {
 	Code string `json:"code"`
 }
