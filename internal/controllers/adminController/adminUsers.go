@@ -5,9 +5,11 @@ import (
 	"backend_v1/internal/errorCodes"
 	"backend_v1/internal/middlewares/auth"
 	"backend_v1/internal/middlewares/handlers"
+	userMiddlewares "backend_v1/internal/middlewares/user"
 	"backend_v1/models"
 	"backend_v1/pkg/utils"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -71,6 +73,7 @@ func ChangeUser(c *gin.Context) {
 	}
 
 	if err := json.Unmarshal(rawData, &user); err != nil {
+		fmt.Println(err)
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parsing Error!", errorCodes.ParsingError))
 		return
 	}
@@ -99,6 +102,32 @@ func ChangeUser(c *gin.Context) {
 		Surname: ifEmpty(user.Surname, foundUser[0].Surname),
 		Email:   email,
 		Active:  user.Active,
+	}
+
+	var foundRole []models.UserRole
+
+	if user.Role != 0 {
+		found := false
+		for _, num := range userMiddlewares.UserRoles() {
+			if num == user.Role {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Undefined user role", errorCodes.UndefinedUserRole))
+			return
+		}
+
+		dataBase.DB.Model(models.UserRole{}).Where("id = ?", foundUser[0].ID).Find(&foundRole)
+		if len(foundUser) > 1 {
+			c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Multiple data", errorCodes.MultipleData))
+			return
+		} else if len(foundUser) < 1 {
+			panic("User role not found")
+		}
+
+		dataBase.DB.Model(models.UserRole{}).Where("id = ?", foundUser[0].ID).UpdateColumn("role", user.Role)
 	}
 
 	if !user.Active {
