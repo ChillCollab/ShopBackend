@@ -22,6 +22,27 @@ type UserInfo struct {
 	Role int `json:"role"`
 }
 
+type EmailChangeRequest struct {
+	Email string `json:"email"`
+}
+type EmailChange struct {
+	UserID  uint   `json:"user_id"`
+	Email   string `json:"email"`
+	Code    int    `json:"code"`
+	Created string `json:"created"`
+}
+
+type EmailChangeComplete struct {
+	Code int `json:"code"`
+}
+
+type EmailChangeResponse struct {
+	Success      bool   `json:"success"`
+	Messages     string `json:"messages"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 type ChangeUser struct {
 	ID      uint   `gorm:"unique" json:"id"`
 	Login   string `json:"login"`

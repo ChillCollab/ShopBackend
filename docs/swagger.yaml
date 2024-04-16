@@ -66,6 +66,27 @@ definitions:
       surname:
         type: string
     type: object
+  models.EmailChangeComplete:
+    properties:
+      code:
+        type: integer
+    type: object
+  models.EmailChangeRequest:
+    properties:
+      email:
+        type: string
+    type: object
+  models.EmailChangeResponse:
+    properties:
+      access_token:
+        type: string
+      messages:
+        type: string
+      refresh_token:
+        type: string
+      success:
+        type: boolean
+    type: object
   models.ErrorResponse:
     properties:
       code:
@@ -620,6 +641,78 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Change user data
+      tags:
+      - User
+  /user/change/email:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint to change user email
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.EmailChangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SuccessResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Change user email
+      tags:
+      - User
+  /user/change/email/submit:
+    patch:
+      consumes:
+      - application/json
+      description: Endpoint to complete email change
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.EmailChangeComplete'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.EmailChangeResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Change email complete
       tags:
       - User
   /user/changepass:

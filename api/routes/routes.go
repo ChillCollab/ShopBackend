@@ -28,6 +28,8 @@ func Routes(r *gin.Engine) {
 			user.GET("/info", userController.Info)
 			user.POST("/changepass", userController.ChangePassword)
 			user.PATCH("/change", userController.ChangeOwnData)
+			user.POST("/change/email", userController.ChangeEmail)
+			user.PATCH("/change/email/submit", userController.ChangeEmailComplete)
 		}
 
 		admin := api.Group("/admin")

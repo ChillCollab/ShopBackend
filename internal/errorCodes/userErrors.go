@@ -6,4 +6,6 @@ const (
 	UsersNotFound
 	IncorrectLogin
 	IncorrectInfoData
+	CodeNotFound
+	RoleNotFound
 )
