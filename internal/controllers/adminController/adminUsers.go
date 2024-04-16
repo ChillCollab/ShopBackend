@@ -17,13 +17,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ifEmpty(value string, defaultValue string) string {
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
 // @Summary Get all users
 // @Description Endpoint to get all users
 // @Tags Admin
@@ -83,6 +76,25 @@ func ChangeUser(c *gin.Context) {
 		return
 	}
 
+	if len(user.Name) > 32 || len(user.Surname) > 32 {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Name and Surname must be not more 32", errorCodes.IncorrectInfoData))
+		return
+	}
+
+	if user.Phone != "" {
+		if valid := utils.PhoneNumberValidator(user.Phone); !valid {
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Invalid phone number format", errorCodes.IncorrectUserPhone))
+			return
+		}
+
+	}
+	if user.Login != "" {
+		if valid := utils.ValidateLogin(user.Login); !valid {
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Invalid login format. Login must be include only one word and symbols not more 32 ", errorCodes.IncorrectUserLogin))
+			return
+		}
+	}
+
 	var foundUser []models.User
 	dataBase.DB.Model(&models.User{}).Where("id = ?", user.ID).Find(&foundUser)
 	if len(foundUser) <= 0 {
@@ -90,18 +102,21 @@ func ChangeUser(c *gin.Context) {
 		return
 	}
 
-	email := ifEmpty(user.Email, foundUser[0].Email)
+	email := handlers.IfEmpty(user.Email, foundUser[0].Email)
 	if valid := utils.MailValidator(email); !valid {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Invalid email format", errorCodes.IncorrectEmail))
 		return
 	}
 
 	newData := models.User{
-		Login:   ifEmpty(user.Login, foundUser[0].Login),
-		Name:    ifEmpty(user.Name, foundUser[0].Name),
-		Surname: ifEmpty(user.Surname, foundUser[0].Surname),
+		Login:   handlers.IfEmpty(user.Login, foundUser[0].Login),
+		Name:    handlers.IfEmpty(user.Name, foundUser[0].Name),
+		Surname: handlers.IfEmpty(user.Surname, foundUser[0].Surname),
+		Phone:   handlers.IfEmpty(user.Phone, foundUser[0].Phone),
 		Email:   email,
-		Active:  user.Active,
+		Active:  foundUser[0].Active,
+		Created: foundUser[0].Created,
+		Updated: dataBase.TimeNow(),
 	}
 
 	var foundRole []models.UserRole
@@ -128,10 +143,6 @@ func ChangeUser(c *gin.Context) {
 		}
 
 		dataBase.DB.Model(models.UserRole{}).Where("id = ?", foundUser[0].ID).UpdateColumn("role", user.Role)
-	}
-
-	if !user.Active {
-		dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", user.ID).Delete(models.AccessToken{})
 	}
 
 	dataBase.DB.Model(&models.User{}).Where("id = ?", user.ID).UpdateColumns(newData).Update("active", newData.Active)

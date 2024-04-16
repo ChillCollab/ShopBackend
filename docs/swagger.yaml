@@ -29,8 +29,6 @@ definitions:
     type: object
   models.ChangeUser:
     properties:
-      active:
-        type: boolean
       email:
         type: string
       id:
@@ -39,8 +37,21 @@ definitions:
         type: string
       name:
         type: string
+      phone:
+        type: string
       role:
         type: integer
+      surname:
+        type: string
+    type: object
+  models.ChangeUserInfo:
+    properties:
+      login:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
       surname:
         type: string
     type: object
@@ -102,6 +113,8 @@ definitions:
         type: string
       name:
         type: string
+      phone:
+        type: string
       surname:
         type: string
       updated:
@@ -120,6 +133,8 @@ definitions:
       login:
         type: string
       name:
+        type: string
+      phone:
         type: string
       role:
         type: integer
@@ -571,6 +586,42 @@ paths:
       summary: Check registration code if exist
       tags:
       - Auth
+  /user/change:
+    patch:
+      consumes:
+      - application/json
+      description: Endpoint to change user data
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.ChangeUserInfo'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.SuccessResponse'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Change user data
+      tags:
+      - User
   /user/changepass:
     post:
       consumes:

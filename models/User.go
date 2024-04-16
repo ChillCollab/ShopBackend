@@ -6,6 +6,7 @@ type User struct {
 	Name    string `json:"name"`
 	Surname string `json:"surname"`
 	Email   string `json:"email"`
+	Phone   string `json:"phone"`
 	Active  bool   `json:"active"`
 	Created string `json:"created"`
 	Updated string `json:"updated"`
@@ -27,8 +28,15 @@ type ChangeUser struct {
 	Name    string `json:"name"`
 	Surname string `json:"surname"`
 	Email   string `json:"email"`
-	Active  bool   `json:"active"`
+	Phone   string `json:"phone"`
 	Role    int    `json:"role"`
+}
+
+type ChangeUserInfo struct {
+	Login   string `json:"login"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Phone   string `json:"phone"`
 }
 
 type UsersArray struct {

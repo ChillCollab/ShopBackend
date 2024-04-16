@@ -158,6 +158,16 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	if len(user.Name) > 32 || len(user.Surname) > 32 {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Name and Surname must be not more 32", errorcodes.IncorrectInfoData))
+		return
+	}
+
+	if ok := utils.ValidateLogin(user.Login); !ok {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Login should be include only letters and digits", errorcodes.IncorrectLogin))
+		return
+	}
+
 	var ifExist []models.User
 
 	dataBase.DB.Where("email = ?", user.Email).Find(&ifExist)
@@ -171,8 +181,8 @@ func Register(c *gin.Context) {
 		Name:    user.Name,
 		Surname: user.Surname,
 		Email:   user.Email,
-		Created: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
-		Updated: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
+		Created: dataBase.TimeNow(),
+		Updated: dataBase.TimeNow(),
 	}
 
 	create := dataBase.DB.Model(&models.User{}).Create(&completeUser)
@@ -261,7 +271,7 @@ func Send(c *gin.Context) {
 		UserId:  int(foundUser.ID),
 		Type:    0,
 		Code:    code,
-		Created: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
+		Created: dataBase.TimeNow(),
 	})
 
 	if utils.Send(
@@ -352,7 +362,7 @@ func Activate(c *gin.Context) {
 	dataBase.DB.Model(&models.UserPass{}).Create(models.UserPass{
 		UserId:  uint(activate[0].UserId),
 		Pass:    utils.Hash(user.Password),
-		Updated: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
+		Updated: dataBase.TimeNow(),
 	})
 	dataBase.DB.Model(&models.User{}).Where("id = ?", activate[0].UserId).Update("active", true)
 
@@ -597,7 +607,7 @@ func Recovery(c *gin.Context) {
 		UserId:  int(foundUser.ID),
 		Type:    1,
 		Code:    code,
-		Created: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
+		Created: dataBase.TimeNow(),
 	})
 
 	if utils.Send(
@@ -692,11 +702,11 @@ func RecoverySubmit(c *gin.Context) {
 		dataBase.DB.Model(models.UserPass{}).Create(models.UserPass{
 			UserId:  foundUser[0].ID,
 			Pass:    hashPassword,
-			Updated: time.Now().UTC().Format(os.Getenv("DATE_FORMAT")),
+			Updated: dataBase.TimeNow(),
 		})
 	} else if len(foundPass) == 1 {
 		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("pass", hashPassword)
-		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("updated", time.Now().UTC().Format(os.Getenv("DATE_FORMAT")))
+		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("updated", dataBase.TimeNow())
 	} else {
 		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
 		return
