@@ -24,4 +24,6 @@ const (
 	RecoveryCodeNotFound
 	RecoveryCodeExpired
 	LoginCanBeEmpty
+	TokenError
+	TokenUpdateError
 )

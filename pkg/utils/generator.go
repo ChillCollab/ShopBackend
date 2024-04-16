@@ -6,6 +6,11 @@ import (
 	"math/rand"
 )
 
+func GenerateNumberCode() int {
+	code := rand.Intn(1000000)
+	return code
+}
+
 func CodeGen() string {
 
 	bytes := make([]byte, 8)
