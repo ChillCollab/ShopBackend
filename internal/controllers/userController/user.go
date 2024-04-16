@@ -107,3 +107,73 @@ func ChangePassword(c *gin.Context) {
 
 	c.JSON(http.StatusOK, handlers.ErrMsg(true, "Password updated", 0))
 }
+
+// @Summary Change user data
+// @Description Endpoint to change user data
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param body body models.ChangeUserInfo true "request body"
+// @Success 200 array models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 500
+// @Security ApiKeyAuth
+// @Router /user/change [patch]
+func ChangeOwnData(c *gin.Context) {
+	var user models.ChangeUserInfo
+
+	rawData, err := c.GetRawData()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parsing Error!", errorCodes.ParsingError))
+		return
+	}
+
+	if err := json.Unmarshal(rawData, &user); err != nil {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Unmarshal error", errorCodes.ParsingError))
+		return
+	}
+
+	token := auth.CheckAuth(c, true)
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		return
+	}
+
+	email := auth.JwtParse(token).Email
+
+	var users []models.User
+	dataBase.DB.Model(models.User{}).Where("email = ?", email).Find(&users)
+	if len(users) <= 0 {
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorCodes.Unauthorized))
+		return
+	}
+
+	if user.Login != "" {
+		if ok := utils.ValidateLogin(user.Login); !ok {
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Login must be include only letters and digits not more 32", errorCodes.IncorrectLogin))
+			return
+		}
+	}
+
+	if len(user.Name) > 32 || len(user.Surname) > 32 {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Name and Surname must be not more 32", errorCodes.IncorrectInfoData))
+		return
+	}
+
+	newData := models.User{
+		Login:   handlers.IfEmpty(user.Login, users[0].Login),
+		Name:    handlers.IfEmpty(user.Name, users[0].Name),
+		Surname: handlers.IfEmpty(user.Surname, users[0].Surname),
+		Phone:   handlers.IfEmpty(user.Phone, users[0].Phone),
+		Active:  users[0].Active,
+		Email:   users[0].Email,
+		Created: users[0].Created,
+		Updated: dataBase.TimeNow(),
+	}
+
+	dataBase.DB.Model(models.User{}).Where("email = ?", email).Updates(newData)
+
+	c.JSON(http.StatusOK, handlers.ErrMsg(true, "User data updated", 0))
+
+}

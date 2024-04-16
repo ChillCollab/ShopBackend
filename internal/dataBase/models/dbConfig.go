@@ -3,6 +3,8 @@ package dataBase
 import (
 	"backend_v1/models"
 	"fmt"
+	"os"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -42,4 +44,8 @@ func InitDB(cfg Config) {
 
 	DB = db
 
+}
+
+func TimeNow() string {
+	return time.Now().UTC().Format(os.Getenv("DATE_FORMAT"))
 }

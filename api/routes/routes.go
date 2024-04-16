@@ -27,6 +27,7 @@ func Routes(r *gin.Engine) {
 		{
 			user.GET("/info", userController.Info)
 			user.POST("/changepass", userController.ChangePassword)
+			user.PATCH("/change", userController.ChangeOwnData)
 		}
 
 		admin := api.Group("/admin")
