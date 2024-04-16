@@ -325,6 +325,10 @@ func ChangeEmailComplete(c *gin.Context) {
 		Email:      foundCode[0].Email,
 		Role:       userRole[0].Role,
 	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, "Error generating tokens", errorCodes.TokenError))
+		return
+	}
 
 	tokens := models.AccessToken{
 		UserId:       users[0].ID,
