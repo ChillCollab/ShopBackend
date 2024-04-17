@@ -1,8 +1,8 @@
 package auth
 
 import (
-	dataBase "backend_v1/internal/dataBase/models"
-	"backend_v1/models"
+	dataBase "backend/internal/dataBase/models"
+	"backend/models"
 	"fmt"
 	"os"
 	"strconv"

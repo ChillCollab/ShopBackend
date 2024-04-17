@@ -1,12 +1,12 @@
 package authController
 
 import (
-	dataBase "backend_v1/internal/dataBase/models"
-	errorcodes "backend_v1/internal/errorCodes"
-	"backend_v1/internal/middlewares/auth"
-	"backend_v1/internal/middlewares/handlers"
-	"backend_v1/models"
-	utils "backend_v1/pkg/utils"
+	dataBase "backend/internal/dataBase/models"
+	errorcodes "backend/internal/errorCodes"
+	"backend/internal/middlewares/auth"
+	"backend/internal/middlewares/handlers"
+	"backend/models"
+	utils "backend/pkg/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"

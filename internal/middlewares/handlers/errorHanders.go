@@ -1,8 +1,6 @@
 package handlers
 
-import (
-	"backend_v1/models"
-)
+import "backend/models"
 
 func ErrMsg(success bool, message string, code int) interface{} {
 	if code == 0 {

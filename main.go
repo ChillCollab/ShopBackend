@@ -1,9 +1,9 @@
 package main
 
 import (
-	"backend_v1/api/routes"
-	"backend_v1/docs"
-	dataBase "backend_v1/internal/dataBase/models"
+	"backend/api/routes"
+	"backend/docs"
+	dataBase "backend/internal/dataBase/models"
 	"log"
 	"os"
 
