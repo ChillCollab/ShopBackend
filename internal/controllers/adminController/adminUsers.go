@@ -1,13 +1,13 @@
 package adminController
 
 import (
-	dataBase "backend_v1/internal/dataBase/models"
-	"backend_v1/internal/errorCodes"
-	"backend_v1/internal/middlewares/auth"
-	"backend_v1/internal/middlewares/handlers"
-	userMiddlewares "backend_v1/internal/middlewares/user"
-	"backend_v1/models"
-	"backend_v1/pkg/utils"
+	dataBase "backend/internal/dataBase/models"
+	"backend/internal/errorCodes"
+	"backend/internal/middlewares/auth"
+	"backend/internal/middlewares/handlers"
+	userMiddlewares "backend/internal/middlewares/user"
+	"backend/models"
+	"backend/pkg/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"

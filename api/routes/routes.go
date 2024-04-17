@@ -1,9 +1,9 @@
 package routes
 
 import (
-	"backend_v1/internal/controllers/adminController"
-	"backend_v1/internal/controllers/authController"
-	"backend_v1/internal/controllers/userController"
+	"backend/internal/controllers/adminController"
+	"backend/internal/controllers/authController"
+	"backend/internal/controllers/userController"
 
 	"github.com/gin-gonic/gin"
 )
@@ -16,10 +16,10 @@ func Routes(r *gin.Engine) {
 			auth.POST("/login", authController.Login)
 			auth.POST("/refresh", authController.Refresh)
 			auth.POST("/register", authController.Register)
-			auth.POST("/activate/send", authController.Send)
+			auth.POST("/activate/send", authController.Send) // domen email
 			auth.POST("/activate", authController.Activate)
 			auth.POST("/logout", authController.Logout)
-			auth.POST("/recovery", authController.Recovery)
+			auth.POST("/recovery", authController.Recovery) // domen email
 			auth.POST("/recovery/submit", authController.RecoverySubmit)
 			auth.POST("/register/check", authController.CheckRegistrationCode)
 		}
@@ -28,7 +28,7 @@ func Routes(r *gin.Engine) {
 			user.GET("/info", userController.Info)
 			user.POST("/changepass", userController.ChangePassword)
 			user.PATCH("/change", userController.ChangeOwnData)
-			user.POST("/change/email", userController.ChangeEmail)
+			user.POST("/change/email", userController.ChangeEmail) // domen email
 			user.PATCH("/change/email/submit", userController.ChangeEmailComplete)
 		}
 

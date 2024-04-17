@@ -1,7 +1,7 @@
 package dataBase
 
 import (
-	"backend_v1/models"
+	"backend/models"
 	"fmt"
 	"os"
 	"time"
