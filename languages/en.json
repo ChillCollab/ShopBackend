@@ -1,0 +1,8 @@
+{
+    "incorrect_email_or_password": "Incorrect email or password", 
+    "parse_error": "Parse error",
+    "unmarshal_error": "Unmarshal error",
+    "user": "User",
+    "is_no_active": "is not active",
+    "incorrect_name_or_surname": "Name or Surname is not correct"
+}

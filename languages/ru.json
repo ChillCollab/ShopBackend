@@ -1,0 +1,8 @@
+{
+    "incorrect_email_or_password": "Неправильная почта или пароль",
+    "parse_error": "Ошибка парсинга запроса",
+    "unmarshal_error": "Ошибка десериализации запроса",
+    "user": "Пользователь",
+    "is_no_active": "не активен",
+    "incorrect_name_or_surname": "Имя или фамилия некорректны"
+}

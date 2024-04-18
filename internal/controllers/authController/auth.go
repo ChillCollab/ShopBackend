@@ -5,6 +5,7 @@ import (
 	errorcodes "backend/internal/errorCodes"
 	"backend/internal/middlewares/auth"
 	"backend/internal/middlewares/handlers"
+	"backend/internal/middlewares/language"
 	"backend/models"
 	utils "backend/pkg/utils"
 	"encoding/json"
@@ -30,9 +31,11 @@ import (
 func Login(c *gin.Context) {
 	var user models.UserLogin
 
+	lang := language.LangValue(c)
+
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
@@ -42,18 +45,18 @@ func Login(c *gin.Context) {
 	}
 
 	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Unmarshal error!", errorcodes.UnmarshalError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "unmarshal_error"), errorcodes.UnmarshalError))
 		return
 	}
 
 	var foundUser []models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).Find(&foundUser)
 	if len(foundUser) <= 0 {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	if !foundUser[0].Active {
-		c.JSON(401, handlers.ErrMsg(false, "User "+user.Email+" is not Active", errorcodes.UserIsNotActive))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "user")+" "+user.Email+" "+language.Language(lang, "is_not_active"), errorcodes.UserIsNotActive))
 		return
 	}
 
@@ -61,7 +64,7 @@ func Login(c *gin.Context) {
 	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", foundUser[0].ID).First(&passCheck)
 	userPass := utils.Hash(user.Password)
 	if userPass != passCheck.Pass {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
@@ -134,17 +137,17 @@ func Login(c *gin.Context) {
 // @Failure 500
 // @Router /auth/register [post]
 func Register(c *gin.Context) {
-
+	lang := language.LangValue(c)
 	var user models.UserRegister
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
 	if user.Name == "" || user.Surname == "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Name or Surname is not correct", errorcodes.NameOfSurnameIncorrect))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "incorrect_name_or_surname"), errorcodes.NameOfSurnameIncorrect))
 		return
 	} else if !utils.MailValidator(user.Email) {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Your email is not correct. Please write the correct email", errorcodes.IncorrectEmail))
