@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"backend_v1/internal/controllers/authController"
+	"backend/internal/controllers/authController"
 	"net/http"
 	"net/http/httptest"
 	"testing"

@@ -5,6 +5,7 @@ import (
 	errorcodes "backend/internal/errorCodes"
 	"backend/internal/middlewares/auth"
 	"backend/internal/middlewares/handlers"
+	"backend/internal/middlewares/language"
 	"backend/models"
 	utils "backend/pkg/utils"
 	"encoding/json"
@@ -30,9 +31,11 @@ import (
 func Login(c *gin.Context) {
 	var user models.UserLogin
 
+	lang := language.LangValue(c)
+
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
@@ -42,18 +45,18 @@ func Login(c *gin.Context) {
 	}
 
 	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Unmarshal error!", errorcodes.UnmarshalError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "unmarshal_error"), errorcodes.UnmarshalError))
 		return
 	}
 
 	var foundUser []models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).Find(&foundUser)
 	if len(foundUser) <= 0 {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	if !foundUser[0].Active {
-		c.JSON(401, handlers.ErrMsg(false, "User "+user.Email+" is not Active", errorcodes.UserIsNotActive))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "user")+" "+user.Email+" "+language.Language(lang, "is_not_active"), errorcodes.UserIsNotActive))
 		return
 	}
 
@@ -61,7 +64,7 @@ func Login(c *gin.Context) {
 	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", foundUser[0].ID).First(&passCheck)
 	userPass := utils.Hash(user.Password)
 	if userPass != passCheck.Pass {
-		c.JSON(401, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
@@ -134,37 +137,33 @@ func Login(c *gin.Context) {
 // @Failure 500
 // @Router /auth/register [post]
 func Register(c *gin.Context) {
-
+	lang := language.LangValue(c)
 	var user models.UserRegister
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
 	if user.Name == "" || user.Surname == "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Name or Surname is not correct", errorcodes.NameOfSurnameIncorrect))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "incorrect_name_or_surname"), errorcodes.NameOfSurnameIncorrect))
 		return
 	} else if !utils.MailValidator(user.Email) {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Your email is not correct. Please write the correct email", errorcodes.IncorrectEmail))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "incorrect_email"), errorcodes.IncorrectEmail))
 		return
 	} else if user.Login == "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Login can't be empty", errorcodes.LoginCanBeEmpty))
-		return
-	}
-	if valid := utils.MailValidator(user.Email); !valid {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Incorrect email", errorcodes.IncorrectEmail))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "login_empty"), errorcodes.LoginCanBeEmpty))
 		return
 	}
 
 	if len(user.Name) > 32 || len(user.Surname) > 32 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Name and Surname must be not more 32", errorcodes.IncorrectInfoData))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "name_surname_long"), errorcodes.IncorrectInfoData))
 		return
 	}
 
 	if ok := utils.ValidateLogin(user.Login); !ok {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Login should be include only letters and digits", errorcodes.IncorrectLogin))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "login_can_be_include_letters_digits"), errorcodes.IncorrectLogin))
 		return
 	}
 
@@ -172,7 +171,7 @@ func Register(c *gin.Context) {
 
 	dataBase.DB.Where("email = ?", user.Email).Find(&ifExist)
 	if len(ifExist) > 0 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "User with the same email already exist", errorcodes.UserAlreadyExist))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "user_already_exist"), errorcodes.UserAlreadyExist))
 		return
 	}
 
@@ -189,14 +188,14 @@ func Register(c *gin.Context) {
 
 	if create.Error != nil {
 		fmt.Println("DB Error:", create.Error)
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "DB error, please check logs", errorcodes.DBError))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
 	}
 
 	var createdUser []models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", completeUser.Email).Find(&createdUser)
 	if len(createdUser) <= 0 {
-		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, "Created user was not found in table 'users'", errorcodes.NotFoundInUsers))
+		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, language.Language(lang, "created_user_not_found"), errorcodes.NotFoundInUsers))
 		return
 	}
 
@@ -221,11 +220,12 @@ func Register(c *gin.Context) {
 // @Failure 500
 // @Router /auth/activate/send [post]
 func Send(c *gin.Context) {
+	lang := language.LangValue(c)
 	var user models.SendMail
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 	if err := utils.JsonChecker(user, rawData, c); err != "" {
@@ -233,18 +233,18 @@ func Send(c *gin.Context) {
 		return
 	}
 	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 	if user.Email == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "User was not registered", errorcodes.UserNotFound))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "user_not_registered"), errorcodes.UserNotFound))
 		return
 	}
 
 	var foundUser models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "User was not found", errorcodes.UserNotFound))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, language.Language(lang, "user_not_found"), errorcodes.UserNotFound))
 		return
 	}
 
@@ -253,14 +253,14 @@ func Send(c *gin.Context) {
 	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
 	if len(checkUser) > 1 {
 		dataBase.DB.Model(&checkUser).Delete(checkUser)
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorcodes.MultipleData))
 		return
 	}
 	if len(checkUser) > 0 {
 		if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 			dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser[0].UserId).Delete(models.RegToken{UserId: checkUser[0].UserId, Type: 0})
 		} else {
-			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorcodes.EmailAlreadySent))
 			return
 		}
 	}
@@ -283,10 +283,10 @@ func Send(c *gin.Context) {
 			"\nSurname: "+foundUser.Surname+
 			"\nCreated: "+foundUser.Created,
 	) {
-		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
+		c.JSON(http.StatusOK, handlers.ErrMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
 		return
 	} else {
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "email_error"), errorcodes.EmailSendError))
 		return
 	}
 }
@@ -304,22 +304,23 @@ func Send(c *gin.Context) {
 // @Failure 500
 // @Router /auth/activate [post]
 func Activate(c *gin.Context) {
+	lang := language.LangValue(c)
 	var user models.ActivateBody
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		panic(err)
 	}
 	if user.Code == "" {
-		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Incorrect activation code!", errorcodes.IncorrectActivationCode))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, language.Language(lang, "incorrect_activation_code"), errorcodes.IncorrectActivationCode))
 		return
 	}
 	if user.Password == "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Password can't be null", errorcodes.NameOfSurnameIncorrect))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "password_null"), errorcodes.NameOfSurnameIncorrect))
 		return
 	}
 	digit, symb := utils.PasswordChecker(user.Password)
 	if !digit || !symb {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
@@ -327,24 +328,24 @@ func Activate(c *gin.Context) {
 
 	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", user.Code).Find(&activate)
 	if len(activate) <= 0 || activate[0].Type != 0 {
-		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Activation code was not found", errorcodes.ActivationCodeNotFound))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, language.Language(lang, "activation_code_not_found"), errorcodes.ActivationCodeNotFound))
 		return
 	}
 	if activate[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate[0].Code).Delete(activate)
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Your activaton code was expired! Request a new activation code.", errorcodes.ActivationCodeExpired))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
 		return
 	}
 
 	var foundUsers []models.User
 	dataBase.DB.Model(models.User{}).Where("id = ?", uint(activate[0].UserId)).Find(&foundUsers)
 	if len(foundUsers) <= 0 {
-		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "User not found", errorcodes.UserNotFound))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, language.Language(lang, "user_not_found"), errorcodes.UserNotFound))
 		return
 	}
 
 	if foundUsers[0].Active {
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "User already registered", errorcodes.UserAlreadyRegistered))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
 		return
 	}
 
@@ -355,7 +356,7 @@ func Activate(c *gin.Context) {
 			dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate[0].UserId).Delete(checkPass)
 		}
 	} else if len(checkPass) > 1 {
-		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
+		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
 		return
 	}
 	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate[0].Code).Delete(activate)
@@ -366,7 +367,7 @@ func Activate(c *gin.Context) {
 	})
 	dataBase.DB.Model(&models.User{}).Where("id = ?", activate[0].UserId).Update("active", true)
 
-	c.JSON(http.StatusOK, handlers.ErrMsg(true, "Account "+foundUsers[0].Email+" was successful activate!", 0))
+	c.JSON(http.StatusOK, handlers.ErrMsg(true, language.Language(lang, "account")+foundUsers[0].Email+" "+language.Language(lang, "success_activate"), 0))
 }
 
 // @Summary Get new access token
@@ -381,19 +382,20 @@ func Activate(c *gin.Context) {
 // @Failure 500
 // @Router /auth/refresh [post]
 func Refresh(c *gin.Context) {
+	lang := language.LangValue(c)
 	token := auth.CheckAuth(c, false)
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	data := auth.JwtParse(token)
 	if data.Email == nil {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 	var dataToken auth.Token
@@ -402,21 +404,21 @@ func Refresh(c *gin.Context) {
 		return
 	}
 	if err := json.Unmarshal(rawData, &dataToken); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Unmarshal error!", errorcodes.UnmarshalError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "unmarshal_error"), errorcodes.UnmarshalError))
 		return
 	}
 
 	var user models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", data.Email).First(&user)
 	if user.ID == 0 {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
 	var foundToken models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
 	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
@@ -425,12 +427,12 @@ func Refresh(c *gin.Context) {
 	}
 
 	if auth.CheckTokenExpiration(dataToken.Token) {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
 	if dataToken.Token != foundToken.RefreshToken {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
@@ -464,24 +466,25 @@ func Refresh(c *gin.Context) {
 // @Failure 500
 // @Router /auth/logout [post]
 func Logout(c *gin.Context) {
+	lang := language.LangValue(c)
 	token := auth.GetAuth(c)
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	var foundToken []models.AccessToken
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&foundToken)
 	if len(foundToken) == 0 {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Incorrect email or password!", errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	if len(foundToken) > 1 {
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorcodes.MultipleData))
 		return
 	}
 
 	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
-	c.JSON(http.StatusOK, handlers.ErrMsg(true, "Successful logout", 0))
+	c.JSON(http.StatusOK, handlers.ErrMsg(true, language.Language(lang, "successfuly_logout"), 0))
 }
 
 // @Summary Check registration code if exist
@@ -498,11 +501,12 @@ func Logout(c *gin.Context) {
 // @Failure 500
 // @Router /auth/register/check [post]
 func CheckRegistrationCode(c *gin.Context) {
+	lang := language.LangValue(c)
 	var code models.RegistrationCodeBody
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 	if err := utils.JsonChecker(code, rawData, c); err != "" {
@@ -510,9 +514,7 @@ func CheckRegistrationCode(c *gin.Context) {
 		return
 	}
 	if err := json.Unmarshal(rawData, &code); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Parse error",
-		})
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
@@ -520,25 +522,25 @@ func CheckRegistrationCode(c *gin.Context) {
 
 	dataBase.DB.Model(models.RegToken{}).Where("code = ?", code.Code).Find(&foundCodes)
 	if len(foundCodes) <= 0 || foundCodes[0].Type != 0 {
-		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Registration code not found", errorcodes.NotFoundRegistrationCode))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
 		return
 	}
 
 	var user []models.User
 	dataBase.DB.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&user)
 	if len(user) <= 0 {
-		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Registration code not found", errorcodes.NotFoundRegistrationCode))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
 		return
 	}
 
 	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", foundCodes[0]).Delete(foundCodes[0])
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Your activaton code was expired! Request a new activation code.", errorcodes.ActivationCodeExpired))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
 		return
 	}
 
 	if user[0].Active {
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "User already registered", errorcodes.UserAlreadyRegistered))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
 		return
 	}
 
@@ -562,11 +564,12 @@ func CheckRegistrationCode(c *gin.Context) {
 // @Failure 500
 // @Router /auth/recovery [post]
 func Recovery(c *gin.Context) {
+	lang := language.LangValue(c)
 	var user models.SendMail
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 	if err := utils.JsonChecker(user, rawData, c); err != "" {
@@ -580,14 +583,14 @@ func Recovery(c *gin.Context) {
 		return
 	}
 	if user.Email == "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Field 'Email' can't be empty!", errorcodes.EmptyEmail))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "email_empty"), errorcodes.EmptyEmail))
 		return
 	}
 
 	var foundUser models.User
 	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+user.Email, 0))
+		c.JSON(http.StatusOK, handlers.ErrMsg(true, language.Language(lang, "email_sent")+user.Email, 0))
 		return
 	}
 
@@ -597,7 +600,7 @@ func Recovery(c *gin.Context) {
 	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
 	} else {
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Email already sent to address: "+user.Email, errorcodes.EmailAlreadySent))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorcodes.EmailAlreadySent))
 		return
 	}
 
@@ -622,7 +625,7 @@ func Recovery(c *gin.Context) {
 		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, "Email did't send. Pls, check logs", errorcodes.EmailSendError))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "email_error"), errorcodes.EmailSendError))
 		return
 	}
 }
@@ -640,11 +643,12 @@ func Recovery(c *gin.Context) {
 // @Failure 500
 // @Router /auth/recovery/submit [post]
 func RecoverySubmit(c *gin.Context) {
+	lang := language.LangValue(c)
 	var recoveryBody models.RecoverySubmit
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Parse error!", errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
@@ -654,27 +658,25 @@ func RecoverySubmit(c *gin.Context) {
 	}
 
 	if err := json.Unmarshal(rawData, &recoveryBody); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Parse error",
-		})
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
 	if recoveryBody.Code == "" || recoveryBody.Password == "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Code or password can't be empty", errorcodes.CodeOrPasswordEmpty))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "code_password_empty"), errorcodes.CodeOrPasswordEmpty))
 		return
 	}
 
 	digit, symbols := utils.PasswordChecker(recoveryBody.Password)
 	if !digit || !symbols {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, "Password should be include Digits and Symbols", errorcodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
 	var foundCodes []models.RegToken
 	dataBase.DB.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).Find(&foundCodes)
 	if len(foundCodes) <= 0 || len(foundCodes) > 1 || foundCodes[0].Type != 1 {
-		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Recovery code was not found", errorcodes.RecoveryCodeNotFound))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
 		return
 	}
 
@@ -682,13 +684,13 @@ func RecoverySubmit(c *gin.Context) {
 	dataBase.DB.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&foundUser)
 	if len(foundUser) <= 0 || len(foundUser) > 1 {
 		dataBase.DB.Model(models.RegToken{}).Delete(foundCodes)
-		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, "Recovery code was not found", errorcodes.RecoveryCodeNotFound))
+		c.JSON(http.StatusNotFound, handlers.ErrMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
 		return
 	}
 
 	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
 		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", foundCodes[0].Code).Delete(foundCodes[0])
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, "Your recovery code was expired! Request a new recovery code.", errorcodes.RecoveryCodeExpired))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "recovery_code_expired"), errorcodes.RecoveryCodeExpired))
 		return
 	}
 
@@ -708,9 +710,9 @@ func RecoverySubmit(c *gin.Context) {
 		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("pass", hashPassword)
 		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("updated", dataBase.TimeNow())
 	} else {
-		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, "Multiple data", errorcodes.MultipleData))
+		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorcodes.MultipleData))
 		return
 	}
 
-	c.JSON(http.StatusOK, handlers.ErrMsg(true, "User password reseted", 0))
+	c.JSON(http.StatusOK, handlers.ErrMsg(true, language.Language(lang, "password_reseted"), 0))
 }
