@@ -281,8 +281,7 @@ func Send(c *gin.Context) {
 			"\nLogin: "+foundUser.Name+
 			"\nName: "+foundUser.Name+
 			"\nSurname: "+foundUser.Surname+
-			"\nCreated: "+foundUser.Created,
-		dataBase.DB) {
+			"\nCreated: "+foundUser.Created) {
 		c.JSON(http.StatusOK, handlers.ErrMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
 		return
 	} else {
@@ -620,8 +619,7 @@ func Recovery(c *gin.Context) {
 			"\nLogin: "+foundUser.Name+
 			"\nName: "+foundUser.Name+
 			"\nSurname: "+foundUser.Surname+
-			"\nCreated: "+foundUser.Created,
-		dataBase.DB) {
+			"\nCreated: "+foundUser.Created) {
 		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {
