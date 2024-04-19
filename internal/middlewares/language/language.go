@@ -2,7 +2,6 @@ package language
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -34,16 +33,15 @@ func Language(lang string, key string) string {
 }
 
 func LangValue(c *gin.Context) string {
-	language, err := c.Request.Cookie("lang")
+	languageCookie, err := c.Request.Cookie("lang")
 
-	fmt.Println(language.Value)
-
-	if err != nil || language.Value != "ru" {
-		language = &http.Cookie{
+	if err != nil || languageCookie.Value != "ru" {
+		languageCookie = &http.Cookie{
 			Name:  "lang",
 			Value: "en",
 		}
-	}
 
-	return language.Value
+		http.SetCookie(c.Writer, languageCookie)
+	}
+	return languageCookie.Value
 }
