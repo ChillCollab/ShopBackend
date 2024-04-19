@@ -267,13 +267,6 @@ func Send(c *gin.Context) {
 
 	code := utils.CodeGen()
 
-	dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
-		UserId:  int(foundUser.ID),
-		Type:    0,
-		Code:    code,
-		Created: dataBase.TimeNow(),
-	})
-
 	if utils.Send(
 		foundUser.Email,
 		"Welcome to Admin Panel!", "Your link for countinue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
@@ -281,7 +274,14 @@ func Send(c *gin.Context) {
 			"\nLogin: "+foundUser.Name+
 			"\nName: "+foundUser.Name+
 			"\nSurname: "+foundUser.Surname+
-			"\nCreated: "+foundUser.Created) {
+			"\nCreated: "+foundUser.Created,
+		dataBase.DB) {
+		dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
+			UserId:  int(foundUser.ID),
+			Type:    0,
+			Code:    code,
+			Created: dataBase.TimeNow(),
+		})
 		c.JSON(http.StatusOK, handlers.ErrMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
 		return
 	} else {
@@ -605,13 +605,6 @@ func Recovery(c *gin.Context) {
 
 	code := utils.CodeGen()
 
-	dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
-		UserId:  int(foundUser.ID),
-		Type:    1,
-		Code:    code,
-		Created: dataBase.TimeNow(),
-	})
-
 	if utils.Send(
 		foundUser.Email,
 		"Admin Panel password recovery!", "Your link for countinue is:  "+os.Getenv("DOMAIN")+"/acc/activate/"+code+
@@ -619,7 +612,14 @@ func Recovery(c *gin.Context) {
 			"\nLogin: "+foundUser.Name+
 			"\nName: "+foundUser.Name+
 			"\nSurname: "+foundUser.Surname+
-			"\nCreated: "+foundUser.Created) {
+			"\nCreated: "+foundUser.Created,
+		dataBase.DB) {
+		dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
+			UserId:  int(foundUser.ID),
+			Type:    1,
+			Code:    code,
+			Created: dataBase.TimeNow(),
+		})
 		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {

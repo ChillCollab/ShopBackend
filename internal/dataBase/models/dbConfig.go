@@ -53,37 +53,37 @@ func InitDB(cfg Config) {
 
 func createConfig(db *gorm.DB) {
 	var count int64
-	db.Model(&models.Config{}).Where("param = ?", "mail_host").Count(&count)
+	db.Model(&models.Config{}).Where("param = ?", "smtp_host").Count(&count)
 	if count == 0 {
 		db.Model(&models.Config{}).Create(&models.Config{
-			Param:    "mail_host",
+			Param:    "smtp_host",
 			Value:    "",
 			Activate: true,
 			Updated:  TimeNow(),
 		})
 	}
-	db.Model(&models.Config{}).Where("param = ?", "mail_port").Count(&count)
+	db.Model(&models.Config{}).Where("param = ?", "smtp_port").Count(&count)
 	if count == 0 {
 		db.Model(&models.Config{}).Create(&models.Config{
-			Param:    "mail_port",
+			Param:    "smtp_port",
 			Value:    "",
 			Activate: true,
 			Updated:  TimeNow(),
 		})
 	}
-	db.Model(&models.Config{}).Where("param = ?", "mail_username").Count(&count)
+	db.Model(&models.Config{}).Where("param = ?", "smtp_email").Count(&count)
 	if count == 0 {
 		db.Model(&models.Config{}).Create(&models.Config{
-			Param:    "mail_username",
+			Param:    "smtp_email",
 			Value:    "",
 			Activate: true,
 			Updated:  TimeNow(),
 		})
 	}
-	db.Model(&models.Config{}).Where("param = ?", "mail_password").Count(&count)
+	db.Model(&models.Config{}).Where("param = ?", "smtp_pass").Count(&count)
 	if count == 0 {
 		db.Model(&models.Config{}).Create(&models.Config{
-			Param:    "mail_password",
+			Param:    "smtp_pass",
 			Value:    "",
 			Activate: true,
 			Updated:  TimeNow(),
