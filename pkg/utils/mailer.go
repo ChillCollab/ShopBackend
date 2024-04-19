@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"backend/models"
 	"crypto/tls"
 	"fmt"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 
 	gomail "gopkg.in/mail.v2"
+	"gorm.io/gorm"
 )
 
 func MailValidator(email string) bool {
@@ -17,10 +19,24 @@ func MailValidator(email string) bool {
 	return match
 }
 
-func Send(recipient string, subject string, msg string) bool {
+func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 	if !MailValidator(recipient) {
 		fmt.Println("Validate mail error: Email " + recipient + " is not valid")
 		return false
+	}
+
+	var host models.Config
+	var port models.Config
+	var email models.Config
+	var password models.Config
+	db.Model(&models.Config{}).Where("param = ?", "smtp_host").Find(&host)
+	db.Model(&models.Config{}).Where("param = ?", "smtp_port").Find(&port)
+	db.Model(&models.Config{}).Where("param = ?", "smtp_email").Find(&email)
+	db.Model(&models.Config{}).Where("param = ?", "smtp_pass").Find(&password)
+
+	if host.Value == "" || port.Value == "" || email.Value == "" || password.Value == "" {
+		fmt.Println(host.Value, port.Value, email.Value, password.Value)
+		panic("SMTP config not found or incorrect")
 	}
 
 	m := gomail.NewMessage()
@@ -32,13 +48,12 @@ func Send(recipient string, subject string, msg string) bool {
 
 	m.SetBody("text/plain", msg)
 
-	port, err := strconv.Atoi(os.Getenv("SMTP_PORT"))
+	prt, err := strconv.Atoi(port.Value)
 	if err != nil {
-		fmt.Println(err)
-		return false
+		panic(err)
 	}
 
-	d := gomail.NewDialer(os.Getenv("SMTP_HOST"), port, os.Getenv("SMTP_EMAIL"), os.Getenv("SMTP_PASSWORD"))
+	d := gomail.NewDialer(host.Value, prt, email.Value, password.Value)
 
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 

@@ -13,8 +13,9 @@ type User struct {
 }
 
 type UserRole struct {
-	ID   uint `gorm:"unique" json:"id`
-	Role int  `json:"role"`
+	ID      uint   `gorm:"unique" json:"id"`
+	Role    int    `json:"role"`
+	Updated string `json:"updated"`
 }
 
 type UserInfo struct {
