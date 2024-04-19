@@ -4,7 +4,6 @@ import (
 	"backend/models"
 	"crypto/tls"
 	"fmt"
-	"os"
 	"regexp"
 	"strconv"
 
@@ -40,7 +39,7 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 	}
 
 	m := gomail.NewMessage()
-	m.SetHeader("From", os.Getenv("SMTP_EMAIL"))
+	m.SetHeader("From", email.Value)
 
 	m.SetHeader("To", recipient)
 
