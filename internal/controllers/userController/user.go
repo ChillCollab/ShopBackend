@@ -248,7 +248,7 @@ func ChangeEmail(c *gin.Context) {
 	}
 
 	dataBase.DB.Model(models.EmailChange{}).Create(&newEmail)
-	sent := utils.Send(users[0].Email, "Email change", "Your submit code: "+strconv.Itoa(newEmail.Code))
+	sent := utils.Send(users[0].Email, "Email change", "Your submit code: "+strconv.Itoa(newEmail.Code), dataBase.DB)
 	if !sent {
 		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, language.Language(lang, "email_error"), errorCodes.EmailSendError))
 		return

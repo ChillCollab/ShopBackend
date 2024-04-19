@@ -199,7 +199,7 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	dataBase.DB.Model(models.UserRole{}).Create(&models.UserRole{ID: createdUser[0].ID, Role: 0})
+	dataBase.DB.Model(models.UserRole{}).Create(&models.UserRole{ID: createdUser[0].ID, Role: 0, Updated: dataBase.TimeNow()})
 
 	c.JSON(http.StatusOK, models.UserRegisterComplete{
 		Error: false,
@@ -282,7 +282,7 @@ func Send(c *gin.Context) {
 			"\nName: "+foundUser.Name+
 			"\nSurname: "+foundUser.Surname+
 			"\nCreated: "+foundUser.Created,
-	) {
+		dataBase.DB) {
 		c.JSON(http.StatusOK, handlers.ErrMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
 		return
 	} else {
@@ -621,7 +621,7 @@ func Recovery(c *gin.Context) {
 			"\nName: "+foundUser.Name+
 			"\nSurname: "+foundUser.Surname+
 			"\nCreated: "+foundUser.Created,
-	) {
+		dataBase.DB) {
 		c.JSON(http.StatusOK, handlers.ErrMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {
