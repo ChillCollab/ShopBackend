@@ -49,14 +49,27 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	var foundUserByEmail []models.User
+	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Login).Find(&foundUserByEmail)
+
+	var foundUserByLogin []models.User
+	dataBase.DB.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundUserByLogin)
+
 	var foundUser []models.User
-	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).Find(&foundUser)
+	if len(foundUserByLogin) <= 0 {
+		foundUser = foundUserByEmail
+	} else {
+		foundUser = foundUserByLogin
+	}
 	if len(foundUser) <= 0 {
 		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
+	} else if len(foundUser) > 1 {
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorcodes.MultipleData))
+		return
 	}
 	if !foundUser[0].Active {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "user")+" "+user.Email+" "+language.Language(lang, "is_not_active"), errorcodes.UserIsNotActive))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "user")+" "+user.Login+" "+language.Language(lang, "is_not_active"), errorcodes.UserIsNotActive))
 		return
 	}
 
@@ -73,7 +86,7 @@ func Login(c *gin.Context) {
 
 	access, refresh, err := auth.GenerateJWT(auth.TokenData{
 		Authorized: true,
-		Email:      user.Email,
+		Email:      foundUser[0].Email,
 		Role:       userRole.Role,
 	})
 	if err != nil || refresh == "" || access == "" {
