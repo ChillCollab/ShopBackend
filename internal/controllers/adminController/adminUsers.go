@@ -147,7 +147,7 @@ func ChangeUser(c *gin.Context) {
 
 		dataBase.DB.Model(models.UserRole{}).Where("id = ?", foundUser[0].ID).Find(&foundRole)
 		if len(foundUser) > 1 {
-			c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+			c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 			return
 		} else if len(foundUser) < 1 {
 			panic("User role not found")
