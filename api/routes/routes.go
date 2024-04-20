@@ -3,6 +3,7 @@ package routes
 import (
 	"backend/internal/controllers/adminController"
 	"backend/internal/controllers/authController"
+	"backend/internal/controllers/categoriesController"
 	"backend/internal/controllers/userController"
 
 	"github.com/gin-gonic/gin"
@@ -34,9 +35,20 @@ func Routes(r *gin.Engine) {
 
 		admin := api.Group("/admin")
 		{
-			admin.GET("/users", adminController.Users)
-			admin.POST("/user/change", adminController.ChangeUser)
-			admin.DELETE("/users/delete", adminController.DeleteUsers)
+			users := admin.Group("/users")
+			{
+				users.GET("/list", adminController.Users)
+				users.POST("/change", adminController.ChangeUser)
+				users.DELETE("/delete", adminController.DeleteUsers)
+			}
+			categories := admin.Group("/categories")
+			{
+				categories.POST("/create", categoriesController.CreateCategory)
+				categories.GET("/info", categoriesController.CategoryInfoById)
+				categories.GET("/list", categoriesController.GetCategoryList)
+				categories.PATCH("/update", categoriesController.CategoryUpdate)
+				categories.DELETE("/delete", categoriesController.DeleteCategory)
+			}
 		}
 	}
 }

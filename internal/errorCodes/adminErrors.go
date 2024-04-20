@@ -5,4 +5,7 @@ const (
 	UndefinedUserRole
 	IncorrectUserPhone
 	IncorrectUserLogin
+	CategoryAlreadyExists
+	CategoryNotFound
+	CategoriesListEmpty
 )

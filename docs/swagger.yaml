@@ -10,7 +10,7 @@ definitions:
         type: string
       refresh_token:
         type: string
-      userId:
+      user_id:
         type: integer
     type: object
   models.ActivateBody:
@@ -18,6 +18,50 @@ definitions:
       code:
         type: string
       password:
+        type: string
+    type: object
+  models.CategoryCreateBody:
+    properties:
+      description:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+    type: object
+  models.CategoryDeleteBody:
+    properties:
+      category_id:
+        items:
+          type: string
+        type: array
+    type: object
+  models.CategoryInfo:
+    properties:
+      category_id:
+        type: string
+      created:
+        type: string
+      creator_id:
+        type: integer
+      description:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+      updated:
+        type: string
+    type: object
+  models.CategoryUpdateBody:
+    properties:
+      category_id:
+        type: string
+      description:
+        type: string
+      image:
+        type: string
+      name:
         type: string
     type: object
   models.ChangePassword:
@@ -210,7 +254,171 @@ definitions:
 info:
   contact: {}
 paths:
-  /admin/user/change:
+  /admin/categories/create:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint to create product category
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CategoryCreateBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Created product category
+      tags:
+      - Categories
+  /admin/categories/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Endpoint to delete category
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CategoryDeleteBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Delete category
+      tags:
+      - Categories
+  /admin/categories/info:
+    get:
+      consumes:
+      - application/json
+      description: Endpoint to get information about category by id
+      parameters:
+      - description: category id
+        in: query
+        name: category_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.CategoryInfo'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Get category info by id
+      tags:
+      - Categories
+  /admin/categories/list:
+    get:
+      consumes:
+      - application/json
+      description: Endpoint to get list of categories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.CategoryInfo'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Get categories list
+      tags:
+      - Categories
+  /admin/categories/update:
+    patch:
+      consumes:
+      - application/json
+      description: Endpoint to update category
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.CategoryUpdateBody'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Update category
+      tags:
+      - Categories
+  /admin/users/change:
     post:
       consumes:
       - application/json
@@ -228,9 +436,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.SuccessResponse'
-            type: array
+            $ref: '#/definitions/models.SuccessResponse'
         "401":
           description: Unauthorized
           schema:
@@ -246,7 +452,41 @@ paths:
       summary: Change user data
       tags:
       - Admin
-  /admin/users:
+  /admin/users/delete:
+    delete:
+      consumes:
+      - application/json
+      description: Endpoint to delete user account
+      parameters:
+      - description: request body
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/models.UsersArray'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.SuccessResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Delete user account
+      tags:
+      - Admin
+  /admin/users/list:
     get:
       consumes:
       - application/json
@@ -269,42 +509,6 @@ paths:
       security:
       - ApiKeyAuth: []
       summary: Get all users
-      tags:
-      - Admin
-  /admin/users/delete:
-    delete:
-      consumes:
-      - application/json
-      description: Endpoint to delete user account
-      parameters:
-      - description: request body
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/models.UsersArray'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            items:
-              $ref: '#/definitions/models.SuccessResponse'
-            type: array
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/models.ErrorResponse'
-        "500":
-          description: Internal Server Error
-      security:
-      - ApiKeyAuth: []
-      summary: Delete user account
       tags:
       - Admin
   /auth/activate:
@@ -625,9 +829,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.SuccessResponse'
-            type: array
+            $ref: '#/definitions/models.SuccessResponse'
         "400":
           description: Bad Request
           schema:
@@ -661,9 +863,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.SuccessResponse'
-            type: array
+            $ref: '#/definitions/models.SuccessResponse'
         "400":
           description: Bad Request
           schema:
@@ -697,9 +897,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.EmailChangeResponse'
-            type: array
+            $ref: '#/definitions/models.EmailChangeResponse'
         "400":
           description: Bad Request
           schema:
@@ -733,9 +931,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/models.SuccessResponse'
-            type: array
+            $ref: '#/definitions/models.SuccessResponse'
         "401":
           description: Unauthorized
           schema:

@@ -54,7 +54,7 @@ func Info(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.ChangePassword true "request body"
-// @Success 200 array models.SuccessResponse
+// @Success 200 object models.SuccessResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
@@ -118,7 +118,7 @@ func ChangePassword(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.ChangeUserInfo true "request body"
-// @Success 200 array models.SuccessResponse
+// @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
@@ -189,7 +189,7 @@ func ChangeOwnData(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.EmailChangeRequest true "request body"
-// @Success 200 array models.SuccessResponse
+// @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
@@ -262,7 +262,7 @@ func ChangeEmail(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.EmailChangeComplete true "request body"
-// @Success 200 array models.EmailChangeResponse
+// @Success 200 object models.EmailChangeResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
