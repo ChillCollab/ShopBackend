@@ -53,13 +53,6 @@ func CreateCategory(c *gin.Context) {
 		return
 	}
 
-	var foundCategory []models.Category
-	dataBase.DB.Model(&models.Category{}).Where("name = ?", categoryBody.Name).Find(&foundCategory)
-	if len(foundCategory) > 1 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
-		return
-	}
-
 	categoryCode := utils.LongCodeGen()
 	userEmail := auth.JwtParse(token).Email
 	var foundUser []models.User
@@ -68,7 +61,7 @@ func CreateCategory(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "inc"), errorCodes.Unauthorized))
 		return
 	} else if len(foundUser) > 1 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 
@@ -131,7 +124,7 @@ func CategoryInfoById(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "category_not_found"), errorCodes.CategoryNotFound))
 		return
 	} else if len(foundCategory) > 1 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 	var foundCategoryDescription []models.CategoryDescription
@@ -140,14 +133,14 @@ func CategoryInfoById(c *gin.Context) {
 	if len(foundCategoryDescription) <= 0 {
 		panic(fmt.Errorf("category description not found"))
 	} else if len(foundCategoryDescription) > 1 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 	dataBase.DB.Model(&models.CategoryImage{}).Where("category_id = ?", categoryId).Find(&foundCategoryImage)
 	if len(foundCategoryImage) <= 0 {
 		panic(fmt.Errorf("category image not found"))
 	} else if len(foundCategoryImage) > 1 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 
@@ -201,14 +194,14 @@ func GetCategoryList(c *gin.Context) {
 		if len(foundCategoryDescription) <= 0 {
 			panic(fmt.Errorf("category description not found"))
 		} else if len(foundCategoryDescription) > 1 {
-			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 			return
 		}
 		dataBase.DB.Model(&models.CategoryImage{}).Where("category_id = ?", category.CategoryID).Find(&foundCategoryImage)
 		if len(foundCategoryImage) <= 0 {
 			panic(fmt.Errorf("category image not found"))
 		} else if len(foundCategoryImage) > 1 {
-			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 			return
 		}
 
@@ -267,7 +260,7 @@ func CategoryUpdate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "category_not_found"), errorCodes.CategoryNotFound))
 		return
 	} else if len(foundCategory) > 1 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 
@@ -277,14 +270,14 @@ func CategoryUpdate(c *gin.Context) {
 	if len(foundCategoryDescription) <= 0 {
 		panic(fmt.Errorf("category description not found"))
 	} else if len(foundCategoryDescription) > 1 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 	dataBase.DB.Model(&models.CategoryImage{}).Where("category_id = ?", categoryBody.CategoryID).Find(&foundCategoryImage)
 	if len(foundCategoryImage) <= 0 {
 		panic(fmt.Errorf("category image not found"))
 	} else if len(foundCategoryImage) > 1 {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorCodes.MultipleData))
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 

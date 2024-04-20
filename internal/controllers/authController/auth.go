@@ -65,7 +65,7 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	} else if len(foundUser) > 1 {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorcodes.MultipleData))
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
 		return
 	}
 	if !foundUser[0].Active {
@@ -266,7 +266,7 @@ func Send(c *gin.Context) {
 	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
 	if len(checkUser) > 1 {
 		dataBase.DB.Model(&checkUser).Delete(checkUser)
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorcodes.MultipleData))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
 		return
 	}
 	if len(checkUser) > 0 {
@@ -491,7 +491,7 @@ func Logout(c *gin.Context) {
 		return
 	}
 	if len(foundToken) > 1 {
-		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorcodes.MultipleData))
+		c.JSON(http.StatusForbidden, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
 		return
 	}
 
@@ -721,7 +721,7 @@ func RecoverySubmit(c *gin.Context) {
 		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("pass", hashPassword)
 		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("updated", dataBase.TimeNow())
 	} else {
-		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, language.Language(lang, "multiple_data"), errorcodes.MultipleData))
+		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
 		return
 	}
 
