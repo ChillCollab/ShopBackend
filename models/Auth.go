@@ -58,7 +58,7 @@ type RegToken struct {
 }
 
 type AccessToken struct {
-	UserId       uint   `gorm:"unique" json:"user_id`
+	UserId       uint   `gorm:"unique" json:"user_id"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }

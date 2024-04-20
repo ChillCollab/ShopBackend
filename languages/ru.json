@@ -45,5 +45,10 @@
     "invalid_phone_number_format": "Неверный формат номера телефона",
     "undefined_user_role": "Неизвестная роль пользователя",
     "user_deleted": "Пользователь был удален",
-    "users_not_found_by_id": "Пользователи не были найдены с предоставленными ID"
+    "users_not_found_by_id": "Пользователи не были найдены с предоставленными ID",
+    "category_created": "Категория была создана",
+    "category_not_found": "Категория не найдена",
+    "category_updated": "Категория была обновлена",
+    "category_deleted": "Категории были удалены",
+    "categories_list_empty": "Список категорий пуст"
 }

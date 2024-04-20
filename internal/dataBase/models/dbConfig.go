@@ -39,6 +39,9 @@ func InitDB(cfg Config) {
 		&models.UserPass{},
 		&models.AccessToken{},
 		&models.EmailChange{},
+		&models.Category{},
+		&models.CategoryDescription{},
+		&models.CategoryImage{},
 	); err != nil {
 		panic(err)
 	}

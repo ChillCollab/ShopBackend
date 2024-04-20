@@ -46,5 +46,10 @@
     "invalid_phone_number_format": "Invalid phone number format",
     "undefined_user_role": "Undefined user role",
     "user_deleted": "User was deleted",
-    "users_not_found_by_id": "No users were found with the provided IDs"
+    "users_not_found_by_id": "No users were found with the provided IDs",
+    "category_created": "Category was created",
+    "category_not_found": "Category not found",
+    "category_updated": "Category was updated",
+    "category_deleted": "Categories was deleted",
+    "categories_list_empty": "Categories list is empty"
 }

@@ -27,11 +27,15 @@ import (
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
-// @Router /admin/users [get]
+// @Router /admin/users/list [get]
 func Users(c *gin.Context) {
 	lang := language.LangValue(c)
 	token := auth.CheckAuth(c, true)
 	if token == "" {
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		return
+	}
+	if !auth.CheckAdmin(token) {
 		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
@@ -47,17 +51,21 @@ func Users(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.ChangeUser true "request body"
-// @Success 200 array models.SuccessResponse
+// @Success 200 object models.SuccessResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
-// @Router /admin/user/change [post]
+// @Router /admin/users/change [post]
 func ChangeUser(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user models.ChangeUser
 	token := auth.CheckAuth(c, true)
 	if token == "" {
+		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		return
+	}
+	if !auth.CheckAdmin(token) {
 		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
@@ -159,7 +167,7 @@ func ChangeUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.UsersArray true "request body"
-// @Success 200 array models.SuccessResponse
+// @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
