@@ -17,6 +17,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @Summary Upload avatar
+// @Description Upload avatar
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param file formData file true "File to upload"
+// @Success 200 {object} string
+// @Failure 400 {object} string
+// @Failure 401 {object} string
+// @Failure 500 {object} string
+// @Security ApiKeyAuth
+// @Router /user/avatar [post]
 func UploadAvatar(c *gin.Context) {
 	lang := language.LangValue(c)
 
@@ -102,6 +114,17 @@ func UploadAvatar(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "Details": fileMetadata})
 }
 
+// @Summary Get avatar by uuid
+// @Description Get avatar by uuid
+// @Tags User
+// @Accept json
+// @Produce json
+// @Param uuid path string true "UUID of the avatar"
+// @Success 200 {object} string
+// @Failure 400 {object} string
+// @Failure 404 {object} string
+// @Failure 500 {object} string
+// @Router /user/avatar/{uuid} [get]
 func GetAvatar(ctx *gin.Context) {
 
 	uuid := ctx.Param("uuid")
