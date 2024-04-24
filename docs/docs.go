@@ -1401,6 +1401,9 @@ const docTemplate = `{
                 "active": {
                     "type": "boolean"
                 },
+                "avatar_id": {
+                    "type": "string"
+                },
                 "created": {
                     "type": "string"
                 },
@@ -1432,6 +1435,9 @@ const docTemplate = `{
             "properties": {
                 "active": {
                     "type": "boolean"
+                },
+                "avatar_id": {
+                    "type": "string"
                 },
                 "created": {
                     "type": "string"

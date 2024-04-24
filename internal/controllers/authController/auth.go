@@ -188,6 +188,13 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	var foundLogin []models.User
+	dataBase.DB.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundLogin)
+	if len(foundLogin) > 0 {
+		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "login_already_exist"), errorcodes.LoginAlreadyExist))
+		return
+	}
+
 	completeUser := models.User{
 		Login:   user.Login,
 		Name:    user.Name,

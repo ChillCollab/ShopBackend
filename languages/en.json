@@ -6,6 +6,7 @@
     "users": "Users",
     "deleted": "Deleted",
     "account": "Account ",
+    "error": "Error",
     "success_activate": "was successful activated",
     "is_no_active": "is not active",
     "incorrect_name_or_surname": "Name or Surname is not correct",
@@ -15,6 +16,7 @@
     "name_surname_long": "Name and Surname must be not more 32",
     "login_can_be_include_letters_digits": "Login can be include only letters and digits",
     "user_already_exist": "User with the same email already exist",
+    "login_already_exist": "Login already exist",
     "db_error": "Database error",
     "created_user_not_found": "Created user was not found in table 'users'",
     "user_not_registered": "User is not registered",
@@ -51,5 +53,7 @@
     "category_not_found": "Category not found",
     "category_updated": "Category was updated",
     "category_deleted": "Categories was deleted",
-    "categories_list_empty": "Categories list is empty"
+    "categories_list_empty": "Categories list is empty",
+    "unsupported_file_extension": "Unsupported file format. Only JPG, JPEG, and PNG files are allowed",
+    "too_big_avaar_size": "File size exceeds the maximum allowed size of 3MB"
 }

@@ -5,6 +5,7 @@ import (
 	"backend/internal/errorCodes"
 	"backend/internal/middlewares/auth"
 	"backend/internal/middlewares/handlers"
+	"backend/internal/middlewares/images"
 	"backend/internal/middlewares/language"
 	userMiddlewares "backend/internal/middlewares/user"
 	"backend/models"
@@ -41,6 +42,12 @@ func Users(c *gin.Context) {
 	}
 	var users []models.User
 	dataBase.DB.Model(models.User{}).Find(&users)
+
+	for i := range users {
+		if users[i].AvatarId != "" {
+			users[i].AvatarId = images.AvatarUrl(users[i].AvatarId)
+		}
+	}
 
 	c.JSON(http.StatusOK, users)
 }

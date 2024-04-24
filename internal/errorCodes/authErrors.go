@@ -26,4 +26,5 @@ const (
 	LoginCanBeEmpty
 	TokenError
 	TokenUpdateError
+	LoginAlreadyExist
 )

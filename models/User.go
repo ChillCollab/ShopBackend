@@ -1,15 +1,16 @@
 package models
 
 type User struct {
-	ID      uint   `gorm:"unique" json:"id"`
-	Login   string `json:"login"`
-	Name    string `json:"name"`
-	Surname string `json:"surname"`
-	Email   string `json:"email"`
-	Phone   string `json:"phone"`
-	Active  bool   `json:"active"`
-	Created string `json:"created"`
-	Updated string `json:"updated"`
+	ID       uint   `gorm:"unique" json:"id"`
+	Login    string `json:"login"`
+	Name     string `json:"name"`
+	Surname  string `json:"surname"`
+	Email    string `json:"email"`
+	Phone    string `json:"phone"`
+	AvatarId string `json:"avatar_id"`
+	Active   bool   `json:"active"`
+	Created  string `json:"created"`
+	Updated  string `json:"updated"`
 }
 
 type UserRole struct {
