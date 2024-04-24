@@ -31,6 +31,11 @@ func Routes(r *gin.Engine) {
 			user.PATCH("/change", userController.ChangeOwnData)
 			user.POST("/change/email", userController.ChangeEmail) // domen email
 			user.PATCH("/change/email/submit", userController.ChangeEmailComplete)
+			user.GET("/avatar/:uuid", userController.GetAvatar)
+			upload := user.Group("/upload")
+			{
+				upload.POST("/avatar", userController.UploadAvatar)
+			}
 		}
 
 		admin := api.Group("/admin")

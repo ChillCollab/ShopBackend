@@ -1390,6 +1390,9 @@
                 "active": {
                     "type": "boolean"
                 },
+                "avatar_id": {
+                    "type": "string"
+                },
                 "created": {
                     "type": "string"
                 },
@@ -1421,6 +1424,9 @@
             "properties": {
                 "active": {
                     "type": "boolean"
+                },
+                "avatar_id": {
+                    "type": "string"
                 },
                 "created": {
                     "type": "string"

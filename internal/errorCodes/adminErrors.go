@@ -8,4 +8,6 @@ const (
 	CategoryAlreadyExists
 	CategoryNotFound
 	CategoriesListEmpty
+	AvatarSizelimit
+	DeleteAvatarError
 )

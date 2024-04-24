@@ -7,6 +7,7 @@
     "success_activate": "был успешно активирован",
     "users": "Пользователи",
     "deleted": " удален(-ы)",
+    "error": "Ошибка",
     "is_no_active": "не активен",
     "incorrect_name_or_surname": "Имя или фамилия некорректны",
     "incorrect_email": "Почта введна некорреткно. Пожалуйста, введите корректную почту",
@@ -14,6 +15,7 @@
     "name_surname_long": "Имя и фамилия должны быть не более 32 символов",
     "login_can_be_include_letters_digits": "Логин может содержать только буквы и цифры",
     "user_already_exist": "Пользователь с такой почтой уже существует",
+    "login_already_exist": "Пользователь с таким логином уже существует",
     "db_error": "Ошибка базы данных",
     "created_user_not_found": "Созданный пользователь не найден в таблице 'users'",
     "user_not_registered": "Пользователь не зарегистрирован",
@@ -50,5 +52,7 @@
     "category_not_found": "Категория не найдена",
     "category_updated": "Категория была обновлена",
     "category_deleted": "Категории были удалены",
-    "categories_list_empty": "Список категорий пуст"
+    "categories_list_empty": "Список категорий пуст",
+    "unsupported_file_extension": "Неподдерживаемый тип файла. Только JPG, JPEG и PNG файлы поддерживаются",
+    "too_big_avaar_size": "Размер файла превышает максимально допустимый размер 3МБ"
 }

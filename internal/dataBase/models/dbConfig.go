@@ -34,6 +34,7 @@ func InitDB(cfg Config) {
 	if err := db.AutoMigrate(
 		&models.Config{},
 		&models.User{},
+		&models.File{},
 		&models.UserRole{},
 		&models.RegToken{},
 		&models.UserPass{},

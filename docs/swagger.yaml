@@ -168,6 +168,8 @@ definitions:
     properties:
       active:
         type: boolean
+      avatar_id:
+        type: string
       created:
         type: string
       email:
@@ -189,6 +191,8 @@ definitions:
     properties:
       active:
         type: boolean
+      avatar_id:
+        type: string
       created:
         type: string
       email:

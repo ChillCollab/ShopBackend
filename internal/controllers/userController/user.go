@@ -5,6 +5,7 @@ import (
 	"backend/internal/errorCodes"
 	"backend/internal/middlewares/auth"
 	"backend/internal/middlewares/handlers"
+	"backend/internal/middlewares/images"
 	"backend/internal/middlewares/language"
 	"backend/models"
 	"backend/pkg/utils"
@@ -41,6 +42,8 @@ func Info(c *gin.Context) {
 	}
 	var roles []models.UserRole
 	dataBase.DB.Model(models.UserRole{}).Where("id = ?", users[0].ID).Find(&roles)
+
+	users[0].AvatarId = images.AvatarUrl(users[0].AvatarId)
 
 	c.JSON(http.StatusOK, models.UserInfo{
 		Role: roles[0].Role,
@@ -164,6 +167,15 @@ func ChangeOwnData(c *gin.Context) {
 	if len(user.Name) > 32 || len(user.Surname) > 32 {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "name_surname_long"), errorCodes.IncorrectInfoData))
 		return
+	}
+
+	if user.Login != "" {
+		var checkLogin []models.User
+		dataBase.DB.Model(models.User{}).Where("login = ?", user.Login).Where("id != ?", users[0].ID).Find(&checkLogin)
+		if len(checkLogin) > 0 {
+			c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "login_already_exist"), errorCodes.LoginAlreadyExist))
+			return
+		}
 	}
 
 	newData := models.User{
