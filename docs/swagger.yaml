@@ -815,6 +815,74 @@ paths:
       summary: Check registration code if exist
       tags:
       - Auth
+  /user/avatar:
+    post:
+      consumes:
+      - application/json
+      description: Upload avatar
+      parameters:
+      - description: File to upload
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      security:
+      - ApiKeyAuth: []
+      summary: Upload avatar
+      tags:
+      - User
+  /user/avatar/{uuid}:
+    get:
+      consumes:
+      - application/json
+      description: Get avatar by uuid
+      parameters:
+      - description: UUID of the avatar
+        in: path
+        name: uuid
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Get avatar by uuid
+      tags:
+      - User
   /user/change:
     patch:
       consumes:
