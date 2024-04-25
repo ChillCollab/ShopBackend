@@ -43,7 +43,14 @@ func Info(c *gin.Context) {
 	var roles []models.UserRole
 	dataBase.DB.Model(models.UserRole{}).Where("id = ?", users[0].ID).Find(&roles)
 
-	users[0].AvatarId = images.AvatarUrl(users[0].AvatarId)
+	var url string
+	if users[0].AvatarId != "" {
+		url = images.AvatarUrl(users[0].AvatarId)
+	} else {
+		url = ""
+	}
+
+	users[0].AvatarId = url
 
 	c.JSON(http.StatusOK, models.UserInfo{
 		Role: roles[0].Role,
