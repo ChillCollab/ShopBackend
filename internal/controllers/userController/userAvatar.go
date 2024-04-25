@@ -20,15 +20,15 @@ import (
 // @Summary Upload avatar
 // @Description Upload avatar
 // @Tags User
-// @Accept json
-// @Produce json
+// @Accept */*
+// @Produce multipart/form-data
 // @Param file formData file true "File to upload"
 // @Success 200 {object} string
 // @Failure 400 {object} string
 // @Failure 401 {object} string
 // @Failure 500 {object} string
 // @Security ApiKeyAuth
-// @Router /user/avatar [post]
+// @Router /user/upload/avatar [post]
 func UploadAvatar(c *gin.Context) {
 	lang := language.LangValue(c)
 
