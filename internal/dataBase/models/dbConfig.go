@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type Config struct {
+type dbConfig struct {
 	Host     string
 	Port     string
 	User     string
@@ -22,13 +22,23 @@ type Config struct {
 
 var DB *gorm.DB
 
-func InitDB(cfg Config) {
+func InitDB() error {
+
+	cfg := dbConfig{
+		Host:     os.Getenv("DB_HOST"),
+		Port:     os.Getenv("DB_PORT"),
+		User:     os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASSWORD"),
+		DBName:   os.Getenv("DB_NAME"),
+		SSLMode:  os.Getenv("DB_SSLMODE"),
+	}
+
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := db.AutoMigrate(
@@ -44,7 +54,7 @@ func InitDB(cfg Config) {
 		&models.CategoryDescription{},
 		&models.CategoryImage{},
 	); err != nil {
-		panic(err)
+		return err
 	}
 
 	createConfig(db)
@@ -53,6 +63,7 @@ func InitDB(cfg Config) {
 	fmt.Println("Migrate database")
 
 	DB = db
+	return nil
 }
 
 func createConfig(db *gorm.DB) {

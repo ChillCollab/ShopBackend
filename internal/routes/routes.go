@@ -6,10 +6,19 @@ import (
 	"backend/internal/controllers/categoriesController"
 	"backend/internal/controllers/userController"
 
+	swaggerfiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
+
 	"github.com/gin-gonic/gin"
 )
 
 func Routes(r *gin.Engine) {
+	r.GET("/swagger/*any",
+		ginSwagger.WrapHandler(swaggerfiles.Handler,
+			ginSwagger.DefaultModelsExpandDepth(1),
+			ginSwagger.PersistAuthorization(true),
+		),
+	)
 	api := r.Group("/api_v1")
 	{
 		auth := api.Group("/auth")
