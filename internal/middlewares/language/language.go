@@ -12,9 +12,9 @@ import (
 func Language(lang string, key string) string {
 	var filePath string
 	if lang == "ru" {
-		filePath = "./languages/ru.json"
+		filePath = "../languages/ru.json"
 	} else {
-		filePath = "./languages/en.json"
+		filePath = "../languages/en.json"
 	}
 
 	fileContent, err := os.ReadFile(filePath)

@@ -1,4 +1,4 @@
-package categoriesController
+package controllers
 
 import (
 	dataBase "backend/internal/dataBase/models"
@@ -42,10 +42,6 @@ func CreateCategory(c *gin.Context) {
 	rawData, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
-		return
-	}
-	if err := utils.JsonChecker(categoryBody, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorCodes.UnmarshalError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &categoryBody); err != nil {

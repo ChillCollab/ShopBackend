@@ -54,7 +54,7 @@ func init() {
 			return fmt.Sprintf("%s()", frame.Function), fmt.Sprintf("%s:%d", filename, frame.Line)
 		},
 		DisableColors: false,
-		FullTimestamp: true,
+		FullTimestamp: false,
 	}
 	err := os.Mkdir("logs", 0644)
 	if err != nil {

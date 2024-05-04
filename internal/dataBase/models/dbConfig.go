@@ -2,6 +2,7 @@ package dataBase
 
 import (
 	"backend/models"
+	"backend/pkg/logger"
 	"backend/pkg/utils"
 	"fmt"
 	"os"
@@ -23,6 +24,8 @@ type dbConfig struct {
 var DB *gorm.DB
 
 func InitDB() error {
+
+	logger := logger.GetLogger()
 
 	cfg := dbConfig{
 		Host:     os.Getenv("DB_HOST"),
@@ -60,7 +63,7 @@ func InitDB() error {
 	createConfig(db)
 	createDefaultUserIfNotExists(db)
 
-	fmt.Println("Migrate database")
+	logger.Info("Database migrated successfully")
 
 	DB = db
 	return nil

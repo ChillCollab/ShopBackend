@@ -1,4 +1,4 @@
-package userController
+package controllers
 
 import (
 	dataBase "backend/internal/dataBase/models"

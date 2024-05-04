@@ -1,4 +1,4 @@
-package authController
+package controllers
 
 import (
 	dataBase "backend/internal/dataBase/models"
@@ -17,6 +17,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+// logger := logger.GetLogger()
 
 // @Summary Auth into account
 // @Description Endpoint to login into account
@@ -39,35 +41,19 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	if err := utils.JsonChecker(user, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.UnmarshalError))
-		return
-	}
-
 	if err := json.Unmarshal(rawData, &user); err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "unmarshal_error"), errorcodes.UnmarshalError))
 		return
 	}
 
-	var foundUserByEmail []models.User
-	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Login).Find(&foundUserByEmail)
-
-	var foundUserByLogin []models.User
-	dataBase.DB.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundUserByLogin)
-
 	var foundUser []models.User
-	if len(foundUserByLogin) <= 0 {
-		foundUser = foundUserByEmail
-	} else {
-		foundUser = foundUserByLogin
-	}
+	dataBase.DB.Model(&models.User{}).Where("email = ? OR login = ?", user.Login, user.Login).Find(&foundUser)
+
 	if len(foundUser) <= 0 {
 		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
-	} else if len(foundUser) > 1 {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
-		return
 	}
+
 	if !foundUser[0].Active {
 		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "user")+" "+user.Login+" "+language.Language(lang, "is_not_active"), errorcodes.UserIsNotActive))
 		return
@@ -102,9 +88,9 @@ func Login(c *gin.Context) {
 		expRefresh := auth.CheckTokenExpiration(jwtCheck.RefreshToken)
 		expAccess := auth.CheckTokenExpiration(jwtCheck.AccessToken)
 		if expAccess || expRefresh {
-			dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(passCheck.UserId))).Delete(jwtCheck)
+			dataBase.DB.Model(models.AccessToken{}).Delete("user_id = ?", strconv.Itoa(int(passCheck.UserId)))
 		} else if len(foundUsr) <= 0 {
-			dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(passCheck.UserId))).Delete(jwtCheck)
+			dataBase.DB.Model(models.AccessToken{}).Delete("user_id = ?", strconv.Itoa(int(passCheck.UserId)))
 		} else {
 
 			rem, err := auth.CheckTokenRemaining(jwtCheck.AccessToken, c)
@@ -246,10 +232,6 @@ func Send(c *gin.Context) {
 	rawData, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
-		return
-	}
-	if err := utils.JsonChecker(user, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &user); err != nil {
@@ -418,10 +400,6 @@ func Refresh(c *gin.Context) {
 		return
 	}
 	var dataToken auth.Token
-	if err := utils.JsonChecker(dataToken, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
-		return
-	}
 	if err := json.Unmarshal(rawData, &dataToken); err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "unmarshal_error"), errorcodes.UnmarshalError))
 		return
@@ -528,10 +506,6 @@ func CheckRegistrationCode(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
-	if err := utils.JsonChecker(code, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
-		return
-	}
 	if err := json.Unmarshal(rawData, &code); err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
@@ -589,10 +563,6 @@ func Recovery(c *gin.Context) {
 	rawData, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
-		return
-	}
-	if err := utils.JsonChecker(user, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &user); err != nil {
@@ -667,11 +637,6 @@ func RecoverySubmit(c *gin.Context) {
 	rawData, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
-		return
-	}
-
-	if err := utils.JsonChecker(recoveryBody, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorcodes.ParsingError))
 		return
 	}
 

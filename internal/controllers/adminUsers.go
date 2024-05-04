@@ -1,4 +1,4 @@
-package adminController
+package controllers
 
 import (
 	dataBase "backend/internal/dataBase/models"
@@ -30,6 +30,7 @@ import (
 // @Security ApiKeyAuth
 // @Router /admin/users/list [get]
 func Users(c *gin.Context) {
+
 	lang := language.LangValue(c)
 	token := auth.CheckAuth(c, true)
 	if token == "" {
@@ -200,11 +201,6 @@ func DeleteUsers(c *gin.Context) {
 	}
 
 	var usersArray models.UsersArray
-
-	if err := utils.JsonChecker(usersArray, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorCodes.ParsingError))
-		return
-	}
 
 	if err := json.Unmarshal(rawData, &usersArray); err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))

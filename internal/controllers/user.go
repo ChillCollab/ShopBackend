@@ -1,4 +1,4 @@
-package userController
+package controllers
 
 import (
 	dataBase "backend/internal/dataBase/models"
@@ -78,10 +78,6 @@ func ChangePassword(c *gin.Context) {
 
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
-		return
-	}
-	if err := utils.JsonChecker(passwordData, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorCodes.ParsingError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &passwordData); err != nil {
@@ -298,11 +294,6 @@ func ChangeEmailComplete(c *gin.Context) {
 	}
 	if err := json.Unmarshal(rawData, &completeBody); err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "unmarshal_error"), errorCodes.ParsingError))
-		return
-	}
-
-	if err := utils.JsonChecker(completeBody, rawData, c); err != "" {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, err, errorCodes.ParsingError))
 		return
 	}
 
