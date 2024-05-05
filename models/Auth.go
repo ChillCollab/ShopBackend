@@ -22,18 +22,6 @@ type UserLoginInfo struct {
 	Alive        int    `json:"alive"`
 }
 
-type UserRegister struct {
-	Login   string `json:"login"`
-	Name    string `json:"name"`
-	Surname string `json:"surname"`
-	Email   string `json:"email"`
-}
-
-type UserRegisterComplete struct {
-	Error bool `json:"error"`
-	User  User `json:"user"`
-}
-
 type SendMail struct {
 	Email string `json:"email"`
 }

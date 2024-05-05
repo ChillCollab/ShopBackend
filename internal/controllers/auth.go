@@ -36,14 +36,9 @@ func Login(c *gin.Context) {
 
 	lang := language.LangValue(c)
 
-	rawData, err := c.GetRawData()
+	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
-		return
-	}
-
-	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorcodes.UnmarshalError))
 		return
 	}
 
@@ -57,13 +52,14 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "user")+" "+user.Login+" "+language.Language(lang, "is_not_active"), errorcodes.UserIsNotActive))
 		return
 	}
+
 	userPass := utils.Hash(user.Password)
 	if userPass != userInfo.Pass {
 		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
-	authResonse := responses.AuthResponse{
+	authResponse := responses.AuthResponse{
 		User: responses.UserInfo{
 			ID:      userInfo.ID,
 			Login:   userInfo.Login,
@@ -81,10 +77,17 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	authResonse.AccessToken = tokens.AccessToken
-	authResonse.RefreshToken = tokens.RefreshToken
+	alive, err := auth.CheckTokenRemaining(tokens.AccessToken)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
+		return
+	}
 
-	c.JSON(http.StatusOK, authResonse)
+	authResponse.AccessToken = tokens.AccessToken
+	authResponse.RefreshToken = tokens.RefreshToken
+	authResponse.Alive = alive
+
+	c.JSON(http.StatusOK, authResponse)
 }
 
 // @Summary Register account
@@ -92,7 +95,7 @@ func Login(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.UserRegister true "request body"
+// @Param body body body.Register true "request body"
 // @Success 200 object models.UserRegisterComplete
 // @Failure 400 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
@@ -100,7 +103,8 @@ func Login(c *gin.Context) {
 // @Router /auth/register [post]
 func Register(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user models.UserRegister
+
+	var user body.Register
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
@@ -108,39 +112,9 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	if user.Name == "" || user.Surname == "" {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "incorrect_name_or_surname"), errorcodes.NameOfSurnameIncorrect))
-		return
-	} else if !utils.MailValidator(user.Email) {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email"), errorcodes.IncorrectEmail))
-		return
-	} else if user.Login == "" {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "login_empty"), errorcodes.LoginCanBeEmpty))
-		return
-	}
-
-	if len(user.Name) > 32 || len(user.Surname) > 32 {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "name_surname_long"), errorcodes.IncorrectInfoData))
-		return
-	}
-
-	if ok := utils.ValidateLogin(user.Login); !ok {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "login_can_be_include_letters_digits"), errorcodes.IncorrectLogin))
-		return
-	}
-
-	var ifExist []models.User
-
-	dataBase.DB.Where("email = ?", user.Email).Find(&ifExist)
-	if len(ifExist) > 0 {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "user_already_exist"), errorcodes.UserAlreadyExist))
-		return
-	}
-
-	var foundLogin []models.User
-	dataBase.DB.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundLogin)
-	if len(foundLogin) > 0 {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "login_already_exist"), errorcodes.LoginAlreadyExist))
+	success, res := auth.RegisterHandler(user, lang)
+	if !success {
+		c.JSON(res.Code, res.Object)
 		return
 	}
 
@@ -153,26 +127,23 @@ func Register(c *gin.Context) {
 		Updated: dataBase.TimeNow(),
 	}
 
-	create := dataBase.DB.Model(&models.User{}).Create(&completeUser)
-
-	if create.Error != nil {
-		fmt.Println("DB Error:", create.Error)
-		c.JSON(http.StatusForbidden, handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+	createRes, err := auth.CreateUser(completeUser, lang)
+	if err != nil {
+		c.JSON(createRes.Code, createRes.Object)
 		return
 	}
 
-	var createdUser []models.User
-	dataBase.DB.Model(models.User{}).Where("email = ?", completeUser.Email).Find(&createdUser)
-	if len(createdUser) <= 0 {
-		c.JSON(http.StatusInternalServerError, handlers.ResponseMsg(false, language.Language(lang, "created_user_not_found"), errorcodes.NotFoundInUsers))
-		return
-	}
-
-	dataBase.DB.Model(models.UserRole{}).Create(&models.UserRole{ID: createdUser[0].ID, Role: 0, Updated: dataBase.TimeNow()})
-
-	c.JSON(http.StatusOK, models.UserRegisterComplete{
+	c.JSON(http.StatusOK, responses.RegisterResponse{
 		Error: false,
-		User:  completeUser,
+		User: responses.UserInfo{
+			ID:      completeUser.ID,
+			Login:   completeUser.Login,
+			Name:    completeUser.Name,
+			Surname: completeUser.Surname,
+			Email:   completeUser.Email,
+			Role:    0,
+			Phone:   completeUser.Phone,
+		},
 	})
 }
 
@@ -181,7 +152,7 @@ func Register(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.SendMail true "request body"
+// @Param body body body.Send true "request body"
 // @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
@@ -190,69 +161,25 @@ func Register(c *gin.Context) {
 // @Router /auth/activate/send [post]
 func Send(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user models.SendMail
+	var user body.Send
 
-	rawData, err := c.GetRawData()
+	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
-	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
-		return
-	}
-	if user.Email == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "user_not_registered"), errorcodes.UserNotFound))
-		return
-	}
-
-	var foundUser models.User
-	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
-	if foundUser.Email == "" {
-		c.JSON(http.StatusNotFound, handlers.ResponseMsg(false, language.Language(lang, "user_not_found"), errorcodes.UserNotFound))
-		return
-	}
-
-	var checkUser []models.RegToken
-
-	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
-	if len(checkUser) > 1 {
-		dataBase.DB.Model(&checkUser).Delete(checkUser)
-		c.JSON(http.StatusForbidden, handlers.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
-		return
-	}
-	if len(checkUser) > 0 {
-		if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
-			dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser[0].UserId).Delete(models.RegToken{UserId: checkUser[0].UserId, Type: 0})
-		} else {
-			c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorcodes.EmailAlreadySent))
-			return
-		}
-	}
 
 	code := utils.CodeGen()
 
-	if utils.Send(
-		foundUser.Email,
-		"Welcome to Admin Panel!", "Your link for countinue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
-			"\n\nEmail: "+user.Email+
-			"\nLogin: "+foundUser.Name+
-			"\nName: "+foundUser.Name+
-			"\nSurname: "+foundUser.Surname+
-			"\nCreated: "+foundUser.Created,
-		dataBase.DB) {
-		dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
-			UserId:  int(foundUser.ID),
-			Type:    0,
-			Code:    code,
-			Created: dataBase.TimeNow(),
-		})
-		c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
-		return
-	} else {
-		c.JSON(http.StatusForbidden, handlers.ResponseMsg(false, language.Language(lang, "email_error"), errorcodes.EmailSendError))
+	foundUser, response, err := auth.SendHanlder(models.User{Email: user.Email}, lang)
+	if err != nil {
+		c.JSON(response.Code, response.Object)
 		return
 	}
+
+	go auth.SendEmail(foundUser, code)
+
+	c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
 }
 
 // @Summary Activate account

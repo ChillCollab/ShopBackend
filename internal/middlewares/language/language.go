@@ -1,6 +1,7 @@
 package language
 
 import (
+	"backend/pkg/logger"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -10,6 +11,8 @@ import (
 )
 
 func Language(lang string, key string) string {
+	logger := logger.GetLogger()
+
 	var filePath string
 	if lang == "ru" {
 		filePath = "../languages/ru.json"
@@ -26,6 +29,11 @@ func Language(lang string, key string) string {
 	err = json.Unmarshal(fileContent, &data)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if data[key] == nil {
+		logger.Error("key " + key + " not found")
+		return ""
 	}
 
 	value := data[key].(string)

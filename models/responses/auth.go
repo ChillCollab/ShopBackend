@@ -16,3 +16,8 @@ type AuthResponse struct {
 	RefreshToken string   `json:"refresh_token"`
 	Alive        int      `json:"alive"`
 }
+
+type RegisterResponse struct {
+	Error bool     `json:"error"`
+	User  UserInfo `json:"user"`
+}

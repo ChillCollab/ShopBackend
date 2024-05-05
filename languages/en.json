@@ -12,6 +12,7 @@
     "incorrect_name_or_surname": "Name or Surname is not correct",
     "incorrect_email": "Your email is not correct. Please write the correct email",
     "email_empty": "Email can't be empty",
+    "user_already_registered": "User already registered",
     "login_empty": "Login can't be empty",
     "name_surname_long": "Name and Surname must be not more 32",
     "login_can_be_include_letters_digits": "Login can be include only letters and digits",

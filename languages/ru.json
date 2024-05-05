@@ -48,6 +48,7 @@
     "undefined_user_role": "Неизвестная роль пользователя",
     "user_deleted": "Пользователь был удален",
     "users_not_found_by_id": "Пользователи не были найдены с предоставленными ID",
+    "user_already_registered": "Пользователь уже зарегистрирован",
     "category_created": "Категория была создана",
     "category_not_found": "Категория не найдена",
     "category_updated": "Категория была обновлена",
