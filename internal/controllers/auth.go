@@ -61,7 +61,6 @@ func Login(c *gin.Context) {
 
 	authResponse := responses.AuthResponse{
 		User: responses.UserInfo{
-			ID:      userInfo.ID,
 			Login:   userInfo.Login,
 			Name:    userInfo.Name,
 			Surname: userInfo.Surname,
@@ -136,7 +135,6 @@ func Register(c *gin.Context) {
 	c.JSON(http.StatusOK, responses.RegisterResponse{
 		Error: false,
 		User: responses.UserInfo{
-			ID:      completeUser.ID,
 			Login:   completeUser.Login,
 			Name:    completeUser.Name,
 			Surname: completeUser.Surname,
@@ -177,7 +175,7 @@ func Send(c *gin.Context) {
 		return
 	}
 
-	go auth.SendEmail(foundUser, code)
+	go auth.SendRegEmail(foundUser, code, 0)
 
 	c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
 }

@@ -184,7 +184,15 @@ func SendHanlder(user models.User, lang string) (usr models.User, res ginRespons
 
 	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
 	if len(checkUser) > 1 {
-		dataBase.DB.Model(&checkUser).Delete(checkUser)
+		del := dataBase.DB.Model(&checkUser).Delete(checkUser)
+		if del.Error != nil {
+			return models.User{},
+				ginResponse{
+					Code:   http.StatusInternalServerError,
+					Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+				},
+				del.Error
+		}
 		return models.User{},
 			ginResponse{
 				Code:   http.StatusForbidden,
@@ -193,31 +201,43 @@ func SendHanlder(user models.User, lang string) (usr models.User, res ginRespons
 			errors.New("multiple data")
 	}
 	if len(checkUser) > 0 {
-		if checkUser[0].Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
-			dataBase.DB.Model(&models.RegToken{}).Delete("user_id = ?", checkUser[0].UserId)
-		} else {
+		if checkUser[0].Created > time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 			return models.User{},
 				ginResponse{
 					Code:   http.StatusBadRequest,
 					Object: handlers.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorCodes.EmailAlreadySent),
 				},
 				errors.New("already sent")
+		} else {
+			del := dataBase.DB.Model(&models.RegToken{}).Delete("user_id = ?", checkUser[0].UserId)
+			if del.Error != nil {
+				return models.User{},
+					ginResponse{
+						Code:   http.StatusInternalServerError,
+						Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+					},
+					del.Error
+			}
 		}
 	}
 
 	return foundUser, ginResponse{}, nil
 }
 
-func SendEmail(user models.User, code string) {
+func SendRegEmail(user models.User, code string, mailType int) {
 
 	logger := logger.GetLogger()
 
-	dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
+	create := dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
 		UserId:  int(user.ID),
-		Type:    0,
+		Type:    mailType,
 		Code:    code,
 		Created: dataBase.TimeNow(),
 	})
+	if create.Error != nil {
+		logger.Error("Create mail in table error: " + create.Error.Error())
+		return
+	}
 
 	if !utils.Send(
 		user.Email,

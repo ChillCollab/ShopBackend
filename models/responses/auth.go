@@ -1,7 +1,6 @@
 package responses
 
 type UserInfo struct {
-	ID      uint   `gorm:"unique" json:"id"`
 	Login   string `json:"login"`
 	Name    string `json:"name"`
 	Surname string `json:"surname"`
