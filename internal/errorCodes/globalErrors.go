@@ -6,4 +6,5 @@ const (
 	ParsingError
 	UnmarshalError
 	MultipleData
+	ServerError
 )

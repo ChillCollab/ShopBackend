@@ -115,12 +115,9 @@ func generateToken(data TokenData, alive int, signingKey string) (string, error)
 	return tokenString, nil
 }
 
-func CheckTokenRemaining(token string, c *gin.Context) (int, error) {
+func CheckTokenRemaining(token string) (int, error) {
 	data := JwtParse(token)
 	if data.Email == nil {
-		c.JSON(401, gin.H{
-			"error": "Incorrect email or password!",
-		})
 		return 0, fmt.Errorf("incorrect email")
 	}
 	remaningTime := time.Unix(int64(data.Expired.(float64)), 0).Sub(time.Now().UTC())
@@ -162,4 +159,61 @@ func CheckAuth(c *gin.Context, checkExpiried bool) string {
 	}
 
 	return token
+}
+
+func CheckTokens(user models.FullUserInfo, tokens models.AccessToken) (models.AccessToken, error) {
+	if tokens.AccessToken == "" || tokens.RefreshToken == "" {
+		access, refresh, err := GenerateJWT(TokenData{
+			Authorized: true,
+			Email:      user.Email,
+			Role:       user.Role,
+		})
+
+		if err != nil {
+			return models.AccessToken{}, err
+		}
+
+		createdTokens := models.AccessToken{
+			UserId:       user.ID,
+			AccessToken:  access,
+			RefreshToken: refresh,
+		}
+
+		createError := dataBase.DB.Model(models.AccessToken{}).Create(createdTokens).Error
+		if createError != nil {
+			return models.AccessToken{}, createError
+		}
+
+		return createdTokens, nil
+	}
+
+	alive, err := CheckTokenRemaining(tokens.AccessToken)
+	if err != nil {
+		return models.AccessToken{}, err
+	}
+
+	if alive <= 0 {
+		access, refresh, err := GenerateJWT(TokenData{
+			Authorized: true,
+			Email:      user.Email,
+			Role:       user.Role,
+		})
+		if err != nil {
+			return models.AccessToken{}, err
+		}
+
+		createdTokens := models.AccessToken{
+			UserId:       user.ID,
+			AccessToken:  access,
+			RefreshToken: refresh,
+		}
+
+		createError := dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", user.ID).Updates(createdTokens).Error
+		if createError != nil {
+			return models.AccessToken{}, createError
+		}
+
+		return createdTokens, nil
+	}
+	return tokens, nil
 }

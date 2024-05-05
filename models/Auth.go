@@ -1,5 +1,20 @@
 package models
 
+type FullUserInfo struct {
+	ID      uint   `gorm:"unique" json:"id"`
+	Login   string `json:"login"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Email   string `json:"email"`
+	Phone   string `json:"phone"`
+	Role    int    `json:"role"`
+	Active  bool   `json:"active"`
+	Pass    string `json:"pass"`
+	Alive   int    `json:"alive"`
+	Created string `json:"created"`
+	Updated string `json:"updated"`
+}
+
 type UserLoginInfo struct {
 	Info         User   `json:"user"`
 	AccessToken  string `json:"access_token"`

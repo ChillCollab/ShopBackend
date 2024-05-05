@@ -34,7 +34,7 @@ func UploadAvatar(c *gin.Context) {
 
 	token := auth.CheckAuth(c, true)
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 
@@ -42,10 +42,10 @@ func UploadAvatar(c *gin.Context) {
 	var users []models.User
 	dataBase.DB.Model(models.User{}).Where("email = ?", email).Find(&users)
 	if len(users) == 0 {
-		c.JSON(http.StatusUnauthorized, handlers.ErrMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	} else if len(users) > 1 {
-		c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
+		c.JSON(http.StatusInternalServerError, handlers.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 
@@ -58,7 +58,7 @@ func UploadAvatar(c *gin.Context) {
 	maxFileSize := 1024 * 3072
 
 	if file.Size > int64(maxFileSize) {
-		c.JSON(http.StatusBadRequest, handlers.ErrMsg(false, language.Language(lang, "too_big_avatar_size"), errorCodes.AvatarSizelimit))
+		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "too_big_avatar_size"), errorCodes.AvatarSizelimit))
 		return
 	}
 
@@ -88,7 +88,7 @@ func UploadAvatar(c *gin.Context) {
 			}
 			dataBase.DB.Model(&models.File{}).Where("uuid = ?", users[0].AvatarId).Delete(&models.File{})
 		} else if len(foundImages) > 1 {
-			c.JSON(http.StatusInternalServerError, handlers.ErrMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
+			c.JSON(http.StatusInternalServerError, handlers.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 			return
 		}
 	}

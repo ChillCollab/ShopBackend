@@ -3,7 +3,7 @@ package main
 import (
 	"backend/docs"
 	server "backend/internal"
-	routes "backend/internal/api"
+	api "backend/internal/api"
 	dataBase "backend/internal/dataBase/models"
 	"backend/pkg/logger"
 	"os"
@@ -11,14 +11,7 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"gorm.io/gorm"
 )
-
-type app struct {
-	server   *gin.Engine
-	dataBase *gorm.DB
-	logger   logger.Logger
-}
 
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
@@ -29,7 +22,7 @@ func main() {
 
 	err := godotenv.Load("../.env")
 	if err != nil {
-		return
+		panic("Env can't be loaded")
 	}
 
 	docs.SwaggerInfo.BasePath = "/api_v1"
@@ -44,7 +37,7 @@ func main() {
 	if err := dataBase.InitDB(); err != nil {
 		panic(err)
 	}
-	routes.New(srv).Routes(r)
+	api.New(srv).Routes(r)
 
 	runErr := r.Run(":" + os.Getenv("APP_PORT"))
 	if runErr != nil {
