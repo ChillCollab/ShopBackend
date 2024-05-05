@@ -15,3 +15,8 @@ type Register struct {
 type Send struct {
 	Email string `json:"email"`
 }
+
+type Activate struct {
+	Code     string `json:"code"`
+	Password string `json:"password"`
+}

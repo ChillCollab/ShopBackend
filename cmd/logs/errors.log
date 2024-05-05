@@ -129,3 +129,6 @@ time="2024-05-05T22:04:51+03:00" level=info msg="Email sent to adderess: sanya2t
 time="2024-05-05T22:08:04+03:00" level=info msg="Database migrated successfully" func="backend/internal/dataBase/models.InitDB()" file="dbConfig.go:66"
 time="2024-05-05T22:08:08+03:00" level=info msg="Email sent to adderess: sanya2test+23@yandex.ru" func="backend/internal/middlewares/auth.SendEmail()" file="authHandlers.go:254"
 time="2024-05-05T22:09:09+03:00" level=info msg="Database migrated successfully" func="backend/internal/dataBase/models.InitDB()" file="dbConfig.go:66"
+time="2024-05-05T22:55:58+03:00" level=info msg="Database migrated successfully" func="backend/internal/dataBase/models.InitDB()" file="dbConfig.go:66"
+time="2024-05-05T22:56:52+03:00" level=info msg="Email sent to adderess: sanya2test+21321@yandex.ru" func="backend/internal/middlewares/auth.SendRegEmail()" file="authHandlers.go:254"
+time="2024-05-05T22:58:43+03:00" level=info msg="Database migrated successfully" func="backend/internal/dataBase/models.InitDB()" file="dbConfig.go:66"

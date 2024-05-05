@@ -2,10 +2,10 @@ package models
 
 type User struct {
 	ID       uint   `gorm:"unique" json:"id"`
-	Login    string `json:"login"`
+	Login    string `gorm:"unique" json:"login"`
 	Name     string `json:"name"`
 	Surname  string `json:"surname"`
-	Email    string `json:"email"`
+	Email    string `gorm:"unique" json:"email"`
 	Phone    string `json:"phone"`
 	AvatarId string `json:"avatar_id"`
 	Active   bool   `json:"active"`

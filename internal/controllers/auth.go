@@ -194,69 +194,26 @@ func Send(c *gin.Context) {
 // @Router /auth/activate [post]
 func Activate(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user models.ActivateBody
+	var user body.Activate
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		panic(err)
-	}
-	if user.Code == "" {
-		c.JSON(http.StatusNotFound, handlers.ResponseMsg(false, language.Language(lang, "incorrect_activation_code"), errorcodes.IncorrectActivationCode))
-		return
-	}
-	if user.Password == "" {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "password_null"), errorcodes.NameOfSurnameIncorrect))
-		return
-	}
-	digit, symb := utils.PasswordChecker(user.Password)
-	if !digit || !symb {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
-	var activate []models.RegToken
-
-	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", user.Code).Find(&activate)
-	if len(activate) <= 0 || activate[0].Type != 0 {
-		c.JSON(http.StatusNotFound, handlers.ResponseMsg(false, language.Language(lang, "activation_code_not_found"), errorcodes.ActivationCodeNotFound))
-		return
-	}
-	if activate[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
-		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate[0].Code).Delete(activate)
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
+	res, err := auth.ActivateHandler(user, lang)
+	if err != nil {
+		c.JSON(res.Code, res.Object)
 		return
 	}
 
-	var foundUsers []models.User
-	dataBase.DB.Model(models.User{}).Where("id = ?", uint(activate[0].UserId)).Find(&foundUsers)
-	if len(foundUsers) <= 0 {
-		c.JSON(http.StatusNotFound, handlers.ResponseMsg(false, language.Language(lang, "user_not_found"), errorcodes.UserNotFound))
+	usr, res, err := auth.ActivateByRegToken(user, lang)
+	if err != nil {
+		c.JSON(res.Code, res.Object)
 		return
 	}
 
-	if foundUsers[0].Active {
-		c.JSON(http.StatusForbidden, handlers.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
-		return
-	}
-
-	var checkPass []models.UserPass
-	dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate[0].UserId).Find(&checkPass)
-	if len(checkPass) == 1 {
-		if checkPass[0].Pass != "" {
-			dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate[0].UserId).Delete(checkPass)
-		}
-	} else if len(checkPass) > 1 {
-		c.JSON(http.StatusInternalServerError, handlers.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
-		return
-	}
-	dataBase.DB.Model(&models.RegToken{}).Where("code = ?", activate[0].Code).Delete(activate)
-	dataBase.DB.Model(&models.UserPass{}).Create(models.UserPass{
-		UserId:  uint(activate[0].UserId),
-		Pass:    utils.Hash(user.Password),
-		Updated: dataBase.TimeNow(),
-	})
-	dataBase.DB.Model(&models.User{}).Where("id = ?", activate[0].UserId).Update("active", true)
-
-	c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "account")+foundUsers[0].Email+" "+language.Language(lang, "success_activate"), 0))
+	c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "account")+usr.Email+" "+language.Language(lang, "success_activate"), 0))
 }
 
 // @Summary Get new access token

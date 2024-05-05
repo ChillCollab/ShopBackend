@@ -32,11 +32,6 @@ type Activate struct {
 	Password string `json:"password"`
 }
 
-type ActivateBody struct {
-	Code     string `json:"code"`
-	Password string `json:"password"`
-}
-
 type RegistrationCodeBody struct {
 	Code string `json:"code"`
 }
@@ -54,7 +49,7 @@ type UserLogin struct {
 }
 
 type RegToken struct {
-	UserId  int    `json:"user_id"`
+	UserId  int    `gorm:"unique" json:"user_id"`
 	Type    int    `json:"type"`
 	Code    string `json:"code"`
 	Created string `json:"created"`
