@@ -25,10 +25,6 @@ type jwtData struct {
 	Expired    interface{} `json:"expired"`
 }
 
-type Token struct {
-	Token string `json:"token"`
-}
-
 func GenerateJWT(data TokenData) (string, string, error) {
 	accessAlive, err := strconv.Atoi(os.Getenv("ACCESS_ALIVE"))
 	if err != nil {

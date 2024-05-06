@@ -31,11 +31,10 @@ import (
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Router /auth/login [post]
-func Login(c *gin.Context) {
+func (cont *Controller) Login(c *gin.Context) {
 	var user body.Login
 
 	lang := language.LangValue(c)
-
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
@@ -78,6 +77,7 @@ func Login(c *gin.Context) {
 
 	alive, err := auth.CheckTokenRemaining(tokens.AccessToken)
 	if err != nil {
+		cont.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -100,7 +100,7 @@ func Login(c *gin.Context) {
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/register [post]
-func Register(c *gin.Context) {
+func (cont *Controller) Register(c *gin.Context) {
 	lang := language.LangValue(c)
 
 	var user body.Register
@@ -157,7 +157,7 @@ func Register(c *gin.Context) {
 // @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/activate/send [post]
-func Send(c *gin.Context) {
+func (cont *Controller) Send(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user body.Send
 
@@ -185,14 +185,14 @@ func Send(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.ActivateBody true "request body"
+// @Param body body body.Activate true "request body"
 // @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
 // @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/activate [post]
-func Activate(c *gin.Context) {
+func (cont *Controller) Activate(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user body.Activate
 	err := c.ShouldBindJSON(&user)
@@ -227,7 +227,7 @@ func Activate(c *gin.Context) {
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/refresh [post]
-func Refresh(c *gin.Context) {
+func (cont *Controller) Refresh(c *gin.Context) {
 	lang := language.LangValue(c)
 	token := auth.CheckAuth(c, false)
 	if token == "" {
@@ -239,14 +239,9 @@ func Refresh(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
-	rawData, err := c.GetRawData()
-	if err != nil {
+	var dataToken body.Refresh
+	if err := c.ShouldBindJSON(&dataToken); err != nil {
 		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
-		return
-	}
-	var dataToken auth.Token
-	if err := json.Unmarshal(rawData, &dataToken); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorcodes.UnmarshalError))
 		return
 	}
 
@@ -265,7 +260,8 @@ func Refresh(c *gin.Context) {
 	}
 
 	if uint(foundToken.UserId) != user.ID {
-		panic("Check user access tokens. Found id != userID from jwt")
+		cont.logger.Error("Check user access tokens. Found id != userID from jwt")
+		return
 	}
 
 	if auth.CheckTokenExpiration(dataToken.Token) {
@@ -307,7 +303,7 @@ func Refresh(c *gin.Context) {
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/logout [post]
-func Logout(c *gin.Context) {
+func (cont *Controller) Logout(c *gin.Context) {
 	lang := language.LangValue(c)
 	token := auth.GetAuth(c)
 	if token == "" {
@@ -342,7 +338,7 @@ func Logout(c *gin.Context) {
 // @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/register/check [post]
-func CheckRegistrationCode(c *gin.Context) {
+func (cont *Controller) CheckRegistrationCode(c *gin.Context) {
 	lang := language.LangValue(c)
 	var code models.RegistrationCodeBody
 
@@ -401,7 +397,7 @@ func CheckRegistrationCode(c *gin.Context) {
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/recovery [post]
-func Recovery(c *gin.Context) {
+func (cont *Controller) Recovery(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user models.SendMail
 
@@ -475,7 +471,7 @@ func Recovery(c *gin.Context) {
 // @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/recovery/submit [post]
-func RecoverySubmit(c *gin.Context) {
+func (cont *Controller) RecoverySubmit(c *gin.Context) {
 	lang := language.LangValue(c)
 	var recoveryBody models.RecoverySubmit
 

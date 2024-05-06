@@ -20,3 +20,7 @@ type Activate struct {
 	Code     string `json:"code"`
 	Password string `json:"password"`
 }
+
+type Refresh struct {
+	Token string `json:"token"`
+}

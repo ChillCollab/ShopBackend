@@ -7,12 +7,14 @@ import (
 
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 )
 
 type Api struct {
 	srv    *gin.Engine
+	db     *gorm.DB
 	logger logger.Logger
 }
 
@@ -25,6 +27,8 @@ func New(srv *server.App) Api {
 
 func (a Api) Routes(r *gin.Engine) {
 
+	handler := controllers.New(r, a.db, a.logger)
+
 	r.GET("/swagger/*any",
 		ginSwagger.WrapHandler(swaggerfiles.Handler,
 			ginSwagger.DefaultModelsExpandDepth(1),
@@ -35,15 +39,15 @@ func (a Api) Routes(r *gin.Engine) {
 	{
 		auth := route.Group("/auth")
 		{
-			auth.POST("/login", controllers.Login)
-			auth.POST("/refresh", controllers.Refresh)
-			auth.POST("/register", controllers.Register)
-			auth.POST("/activate/send", controllers.Send) // domen email
-			auth.POST("/activate", controllers.Activate)
-			auth.POST("/logout", controllers.Logout)
-			auth.POST("/recovery", controllers.Recovery) // domen email
-			auth.POST("/recovery/submit", controllers.RecoverySubmit)
-			auth.POST("/register/check", controllers.CheckRegistrationCode)
+			auth.POST("/login", handler.Login)
+			auth.POST("/refresh", handler.Refresh)
+			auth.POST("/register", handler.Register)
+			auth.POST("/activate/send", handler.Send) // domen email
+			auth.POST("/activate", handler.Activate)
+			auth.POST("/logout", handler.Logout)
+			auth.POST("/recovery", handler.Recovery) // domen email
+			auth.POST("/recovery/submit", handler.RecoverySubmit)
+			auth.POST("/register/check", handler.CheckRegistrationCode)
 		}
 		user := route.Group("/user")
 		{
