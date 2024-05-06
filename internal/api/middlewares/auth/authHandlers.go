@@ -1,18 +1,20 @@
 package auth
 
 import (
-	dataBase "backend/internal/dataBase/models"
-	"backend/internal/errorCodes"
-	"backend/internal/middlewares/handlers"
-	"backend/internal/middlewares/language"
-	"backend/models"
-	"backend/models/body"
-	"backend/pkg/logger"
-	"backend/pkg/utils"
 	"errors"
 	"net/http"
 	"os"
 	"time"
+
+	"gorm.io/gorm"
+
+	"backend/internal/dataBase"
+	"backend/internal/errorCodes"
+	"backend/models"
+	"backend/models/body"
+	"backend/models/language"
+	"backend/pkg/logger"
+	"backend/pkg/utils"
 )
 
 type ginResponse struct {
@@ -20,7 +22,7 @@ type ginResponse struct {
 	Object any
 }
 
-func CheckTokens(user models.FullUserInfo, tokens models.AccessToken) (models.AccessToken, error) {
+func CheckTokens(user models.FullUserInfo, tokens models.AccessToken, db *gorm.DB) (models.AccessToken, error) {
 	if tokens.AccessToken == "" || tokens.RefreshToken == "" {
 		access, refresh, err := GenerateJWT(TokenData{
 			Authorized: true,
@@ -38,7 +40,8 @@ func CheckTokens(user models.FullUserInfo, tokens models.AccessToken) (models.Ac
 			RefreshToken: refresh,
 		}
 
-		createError := dataBase.DB.Model(models.AccessToken{}).Create(createdTokens).Error
+		// Убирай обращение к БД отсюда
+		createError := db.Model(models.AccessToken{}).Create(createdTokens).Error
 		if createError != nil {
 			return models.AccessToken{}, createError
 		}
@@ -67,7 +70,7 @@ func CheckTokens(user models.FullUserInfo, tokens models.AccessToken) (models.Ac
 			RefreshToken: refresh,
 		}
 
-		createError := dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", user.ID).Updates(createdTokens).Error
+		createError := db.Model(models.AccessToken{}).Where("user_id = ?", user.ID).Updates(createdTokens).Error
 		if createError != nil {
 			return models.AccessToken{}, createError
 		}
@@ -77,70 +80,71 @@ func CheckTokens(user models.FullUserInfo, tokens models.AccessToken) (models.Ac
 	return tokens, nil
 }
 
-func RegisterHandler(user body.Register, lang string) (success bool, res ginResponse) {
+func RegisterHandler(user body.Register, lang string, db *gorm.DB) (success bool, res ginResponse) {
 	if user.Name == "" || user.Surname == "" {
 		return false, ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "incorrect_name_or_surname"), errorCodes.NameOfSurnameIncorrect),
+			Object: models.ResponseMsg(false, language.Language(lang, "incorrect_name_or_surname"), errorCodes.NameOfSurnameIncorrect),
 		}
 	}
 	if !utils.MailValidator(user.Email) {
 		return false, ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "incorrect_email"), errorCodes.IncorrectEmail),
+			Object: models.ResponseMsg(false, language.Language(lang, "incorrect_email"), errorCodes.IncorrectEmail),
 		}
 	} else if user.Login == "" {
 		return false, ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "login_empty"), errorCodes.LoginCanBeEmpty),
+			Object: models.ResponseMsg(false, language.Language(lang, "login_empty"), errorCodes.LoginCanBeEmpty),
 		}
 	}
 
 	if len(user.Name) > 32 || len(user.Surname) > 32 {
 		return false, ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "name_surname_long"), errorCodes.IncorrectInfoData),
+			Object: models.ResponseMsg(false, language.Language(lang, "name_surname_long"), errorCodes.IncorrectInfoData),
 		}
 	}
 
 	if ok := utils.ValidateLogin(user.Login); !ok {
 		return false, ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "login_can_be_include_letters_digits"), errorCodes.IncorrectLogin),
+			Object: models.ResponseMsg(false, language.Language(lang, "login_can_be_include_letters_digits"), errorCodes.IncorrectLogin),
 		}
 	}
 
 	var ifExist []models.User
 	var foundLogin []models.User
 
-	dataBase.DB.Where("email = ?", user.Email).Find(&ifExist)
-	dataBase.DB.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundLogin)
+	db.Where("email = ?", user.Email).Find(&ifExist)
+	db.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundLogin)
 
 	if len(ifExist) > 0 {
 		return false, ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "user_already_exist"), errorCodes.UserAlreadyExist),
+			Object: models.ResponseMsg(false, language.Language(lang, "user_already_exist"), errorCodes.UserAlreadyExist),
 		}
 	}
 	if len(foundLogin) > 0 {
 		return false, ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "login_already_exist"), errorCodes.LoginAlreadyExist),
+			Object: models.ResponseMsg(false, language.Language(lang, "login_already_exist"), errorCodes.LoginAlreadyExist),
 		}
 	}
 
 	return true, ginResponse{}
 }
 
-func CreateUser(user models.User, lang string) (res ginResponse, err error) {
-	tx := dataBase.DB.Begin()
+// CreateUser создание пользователя это не Middleware!
+func CreateUser(user models.User, lang string, db *gorm.DB) (res ginResponse, err error) {
+	tx := db.Begin()
 
 	create := tx.Create(&user)
 	if create.Error != nil {
 		tx.Rollback()
 		return ginResponse{
 			Code:   http.StatusInternalServerError,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+			Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 		}, create.Error
 	}
 
@@ -149,54 +153,55 @@ func CreateUser(user models.User, lang string) (res ginResponse, err error) {
 		tx.Rollback()
 		return ginResponse{
 			Code:   http.StatusInternalServerError,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+			Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 		}, roleError
 	}
+	//ginResponse формировать нужно не здесь
 
 	tx.Commit()
 
 	return ginResponse{}, nil
 }
 
-func SendHanlder(user models.User, lang string) (usr models.User, res ginResponse, err error) {
+func SendHanlder(user models.User, lang string, db *gorm.DB) (usr models.User, res ginResponse, err error) {
 
 	if user.Email == "" {
 		return models.User{},
 			ginResponse{
 				Code:   http.StatusBadRequest,
-				Object: handlers.ResponseMsg(false, language.Language(lang, "user_not_registered"), errorCodes.UserNotFound),
+				Object: models.ResponseMsg(false, language.Language(lang, "user_not_registered"), errorCodes.UserNotFound),
 			},
 			errors.New("email is empty")
 	}
 
 	var foundUser models.User
-	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
+	db.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
 		return models.User{},
 			ginResponse{
 				Code:   http.StatusBadRequest,
-				Object: handlers.ResponseMsg(false, language.Language(lang, "user_not_found"), errorCodes.UserNotFound),
+				Object: models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorCodes.UserNotFound),
 			},
 			errors.New("user not found")
 	}
 
 	var checkUser []models.RegToken
 
-	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
+	db.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
 	if len(checkUser) > 1 {
-		del := dataBase.DB.Model(&checkUser).Delete(checkUser)
+		del := db.Model(&checkUser).Delete(checkUser)
 		if del.Error != nil {
 			return models.User{},
 				ginResponse{
 					Code:   http.StatusInternalServerError,
-					Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+					Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 				},
 				del.Error
 		}
 		return models.User{},
 			ginResponse{
 				Code:   http.StatusForbidden,
-				Object: handlers.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData),
+				Object: models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData),
 			},
 			errors.New("multiple data")
 	}
@@ -205,16 +210,16 @@ func SendHanlder(user models.User, lang string) (usr models.User, res ginRespons
 			return models.User{},
 				ginResponse{
 					Code:   http.StatusBadRequest,
-					Object: handlers.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorCodes.EmailAlreadySent),
+					Object: models.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorCodes.EmailAlreadySent),
 				},
 				errors.New("already sent")
 		} else {
-			del := dataBase.DB.Model(&models.RegToken{}).Delete("user_id = ?", checkUser[0].UserId)
+			del := db.Model(&models.RegToken{}).Delete("user_id = ?", checkUser[0].UserId)
 			if del.Error != nil {
 				return models.User{},
 					ginResponse{
 						Code:   http.StatusInternalServerError,
-						Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+						Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 					},
 					del.Error
 			}
@@ -224,11 +229,12 @@ func SendHanlder(user models.User, lang string) (usr models.User, res ginRespons
 	return foundUser, ginResponse{}, nil
 }
 
-func SendRegEmail(user models.User, code string, mailType int) {
+// SendRegEmail это все не middleware
+func SendRegEmail(user models.User, code string, mailType int, db *gorm.DB) {
 
 	logger := logger.GetLogger()
 
-	create := dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
+	create := db.Model(&models.RegToken{}).Create(models.RegToken{
 		UserId:  int(user.ID),
 		Type:    mailType,
 		Code:    code,
@@ -247,7 +253,7 @@ func SendRegEmail(user models.User, code string, mailType int) {
 			"\nName: "+user.Name+
 			"\nSurname: "+user.Surname+
 			"\nCreated: "+user.Created,
-		dataBase.DB) {
+		db) {
 		logger.Error("Email send error to adderess: " + user.Email)
 	}
 
@@ -258,37 +264,38 @@ func ActivateHandler(user body.Activate, lang string) (res ginResponse, err erro
 	if user.Code == "" {
 		return ginResponse{
 			Code:   http.StatusNotFound,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "incorrect_activation_code"), errorCodes.IncorrectActivationCode),
+			Object: models.ResponseMsg(false, language.Language(lang, "incorrect_activation_code"), errorCodes.IncorrectActivationCode),
 		}, errors.New("code is empty")
 	}
 	if user.Password == "" {
 		return ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "password_null"), errorCodes.NameOfSurnameIncorrect),
+			Object: models.ResponseMsg(false, language.Language(lang, "password_null"), errorCodes.NameOfSurnameIncorrect),
 		}, errors.New("password is empty")
 	}
 	digit, symb := utils.PasswordChecker(user.Password)
 	if !digit || !symb {
 		return ginResponse{
 			Code:   http.StatusBadRequest,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorCodes.PasswordShouldByIncludeSymbols),
+			Object: models.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorCodes.PasswordShouldByIncludeSymbols),
 		}, errors.New("password should by include digits")
 	}
 
 	return ginResponse{}, nil
 }
 
-func ActivateByRegToken(user body.Activate, lang string) (usr models.User, res ginResponse, err error) {
+func ActivateByRegToken(user body.Activate, lang string, db *gorm.DB) (usr models.User, res ginResponse, err error) {
 
 	var activate models.RegToken
 
-	tx := dataBase.DB.Begin()
+	tx := db.Begin()
 
-	codesRes := dataBase.DB.Model(&models.RegToken{}).Where("code = ?", user.Code).First(&activate)
+	// создал транзакцию и забил хуй
+	codesRes := db.Model(&models.RegToken{}).Where("code = ?", user.Code).First(&activate)
 	if codesRes.RowsAffected <= 0 {
 		return usr, ginResponse{
 			Code:   http.StatusNotFound,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "activation_code_not_found"), errorCodes.ActivationCodeNotFound),
+			Object: models.ResponseMsg(false, language.Language(lang, "activation_code_not_found"), errorCodes.ActivationCodeNotFound),
 		}, errors.New("code not found")
 	}
 	if activate.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
@@ -297,40 +304,40 @@ func ActivateByRegToken(user body.Activate, lang string) (usr models.User, res g
 			tx.Rollback()
 			return usr, ginResponse{
 				Code:   http.StatusInternalServerError,
-				Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+				Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 			}, deleteCode.Error
 		}
 		return usr, ginResponse{
 			Code:   http.StatusUnauthorized,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorCodes.ActivationCodeExpired),
+			Object: models.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorCodes.ActivationCodeExpired),
 		}, errors.New("code expired")
 	}
 
 	var foundUsers models.User
-	dataBase.DB.Model(models.User{}).Where("id = ?", uint(activate.UserId)).First(&foundUsers)
+	db.Model(models.User{}).Where("id = ?", uint(activate.UserId)).First(&foundUsers)
 	if foundUsers.ID <= 0 {
 		return usr, ginResponse{
 			Code:   http.StatusNotFound,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "user_not_found"), errorCodes.UserNotFound),
+			Object: models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorCodes.UserNotFound),
 		}, errors.New("user not found")
 	}
 
 	if foundUsers.Active {
 		return usr, ginResponse{
 			Code:   http.StatusForbidden,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorCodes.UserAlreadyRegistered),
+			Object: models.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorCodes.UserAlreadyRegistered),
 		}, errors.New("user already registered")
 	}
 
 	var checkPass models.UserPass
-	dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", activate.UserId).First(&checkPass)
+	db.Model(&models.UserPass{}).Where("user_id = ?", activate.UserId).First(&checkPass)
 	if checkPass.Pass != "" {
 		deletePass := tx.Model(&models.UserPass{}).Delete("user_id = ?", activate.UserId)
 		if deletePass.Error != nil {
 			tx.Rollback()
 			return usr, ginResponse{
 				Code:   http.StatusInternalServerError,
-				Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+				Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 			}, deletePass.Error
 		}
 	}
@@ -339,7 +346,7 @@ func ActivateByRegToken(user body.Activate, lang string) (usr models.User, res g
 		tx.Rollback()
 		return usr, ginResponse{
 			Code:   http.StatusInternalServerError,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+			Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 		}, deleteCode.Error
 	}
 	createPass := tx.Model(&models.UserPass{}).Create(models.UserPass{
@@ -351,7 +358,7 @@ func ActivateByRegToken(user body.Activate, lang string) (usr models.User, res g
 		tx.Rollback()
 		return usr, ginResponse{
 			Code:   http.StatusInternalServerError,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+			Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 		}, createPass.Error
 	}
 	update := tx.Model(&models.User{}).Where("id = ?", activate.UserId).Updates(models.User{
@@ -362,7 +369,7 @@ func ActivateByRegToken(user body.Activate, lang string) (usr models.User, res g
 		tx.Rollback()
 		return usr, ginResponse{
 			Code:   http.StatusInternalServerError,
-			Object: handlers.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
+			Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
 		}, update.Error
 	}
 

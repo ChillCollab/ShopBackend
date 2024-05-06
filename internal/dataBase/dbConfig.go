@@ -1,12 +1,13 @@
 package dataBase
 
 import (
-	"backend/models"
-	"backend/pkg/logger"
-	"backend/pkg/utils"
 	"fmt"
 	"os"
 	"time"
+
+	"backend/models"
+	"backend/pkg/logger"
+	"backend/pkg/utils"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -21,12 +22,11 @@ type dbConfig struct {
 	SSLMode  string
 }
 
-var DB *gorm.DB
+type Database struct {
+	*gorm.DB
+}
 
-func InitDB() error {
-
-	logger := logger.GetLogger()
-
+func InitDB(logger logger.Logger) (*Database, error) {
 	cfg := dbConfig{
 		Host:     os.Getenv("DB_HOST"),
 		Port:     os.Getenv("DB_PORT"),
@@ -39,9 +39,8 @@ func InitDB() error {
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", cfg.Host, cfg.User, cfg.Password, cfg.DBName, cfg.Port, cfg.SSLMode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := db.AutoMigrate(
@@ -58,7 +57,7 @@ func InitDB() error {
 		&models.CategoryImage{},
 		&models.RejectedToken{},
 	); err != nil {
-		return err
+		return nil, err
 	}
 
 	createConfig(db)
@@ -66,8 +65,9 @@ func InitDB() error {
 
 	logger.Info("Database migrated successfully")
 
-	DB = db
-	return nil
+	return &Database{
+		db,
+	}, nil
 }
 
 func createConfig(db *gorm.DB) {

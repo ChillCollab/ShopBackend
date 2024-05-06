@@ -1,16 +1,6 @@
-package controllers
+package api
 
 import (
-	dataBase "backend/internal/dataBase/models"
-	errorcodes "backend/internal/errorCodes"
-	"backend/internal/middlewares/auth"
-	"backend/internal/middlewares/db"
-	"backend/internal/middlewares/handlers"
-	"backend/internal/middlewares/language"
-	"backend/models"
-	"backend/models/body"
-	"backend/models/responses"
-	utils "backend/pkg/utils"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -18,9 +8,19 @@ import (
 	"strconv"
 	"time"
 
+	"backend/internal/api/middlewares/auth"
+	"backend/internal/dataBase"
+	errorcodes "backend/internal/errorCodes"
+	"backend/models"
+	"backend/models/body"
+	"backend/models/language"
+	"backend/models/responses"
+	utils "backend/pkg/utils"
+
 	"github.com/gin-gonic/gin"
 )
 
+// Login авторизация
 // @Summary Auth into account
 // @Description Endpoint to login into account
 // @Tags Auth
@@ -31,30 +31,46 @@ import (
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Router /auth/login [post]
-func (cont *Controller) Login(c *gin.Context) {
+func (a *App) Login(c *gin.Context) {
 	var user body.Login
 
 	lang := language.LangValue(c)
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(
+			http.StatusBadRequest,
+			models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError),
+		)
 		return
 	}
 
-	userInfo, tokens, err := db.UserInfo(user.Login)
+	userInfo, tokens, err := a.db.UserInfo(user.Login)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(
+			http.StatusUnauthorized,
+			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized),
+		)
 		return
 	}
 
 	if !userInfo.Active {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "user")+" "+user.Login+" "+language.Language(lang, "is_not_active"), errorcodes.UserIsNotActive))
+		c.JSON(
+			http.StatusUnauthorized,
+			models.ResponseMsg(
+				false,
+				language.Language(lang, "user")+" "+user.Login+" "+language.Language(lang, "is_not_active"),
+				errorcodes.UserIsNotActive,
+			),
+		)
 		return
 	}
 
 	userPass := utils.Hash(user.Password)
 	if userPass != userInfo.Pass {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(
+			http.StatusUnauthorized,
+			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized),
+		)
 		return
 	}
 
@@ -69,7 +85,7 @@ func (cont *Controller) Login(c *gin.Context) {
 		},
 	}
 
-	tokens, errors := auth.CheckTokens(userInfo, models.AccessToken{UserId: userInfo.ID, AccessToken: tokens.AccessToken, RefreshToken: tokens.RefreshToken})
+	tokens, errors := auth.CheckTokens(userInfo, models.AccessToken{UserId: userInfo.ID, AccessToken: tokens.AccessToken, RefreshToken: tokens.RefreshToken}, a.db.DB)
 	if errors != nil {
 		c.JSON(http.StatusInternalServerError, errors)
 		return
@@ -77,7 +93,7 @@ func (cont *Controller) Login(c *gin.Context) {
 
 	alive, err := auth.CheckTokenRemaining(tokens.AccessToken)
 	if err != nil {
-		cont.logger.Error(err)
+		a.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
@@ -100,18 +116,18 @@ func (cont *Controller) Login(c *gin.Context) {
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/register [post]
-func (cont *Controller) Register(c *gin.Context) {
+func (a *App) Register(c *gin.Context) {
 	lang := language.LangValue(c)
 
 	var user body.Register
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
-	success, res := auth.RegisterHandler(user, lang)
+	success, res := auth.RegisterHandler(user, lang, a.db.DB)
 	if !success {
 		c.JSON(res.Code, res.Object)
 		return
@@ -126,7 +142,7 @@ func (cont *Controller) Register(c *gin.Context) {
 		Updated: dataBase.TimeNow(),
 	}
 
-	createRes, err := auth.CreateUser(completeUser, lang)
+	createRes, err := auth.CreateUser(completeUser, lang, a.db.DB)
 	if err != nil {
 		c.JSON(createRes.Code, createRes.Object)
 		return
@@ -157,27 +173,27 @@ func (cont *Controller) Register(c *gin.Context) {
 // @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/activate/send [post]
-func (cont *Controller) Send(c *gin.Context) {
+func (a *App) Send(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user body.Send
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
 	code := utils.CodeGen()
 
-	foundUser, response, err := auth.SendHanlder(models.User{Email: user.Email}, lang)
+	foundUser, response, err := auth.SendHanlder(models.User{Email: user.Email}, lang, a.db.DB)
 	if err != nil {
 		c.JSON(response.Code, response.Object)
 		return
 	}
 
-	go auth.SendRegEmail(foundUser, code, 0)
+	go auth.SendRegEmail(foundUser, code, 0, a.db.DB)
 
-	c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
+	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
 }
 
 // @Summary Activate account
@@ -192,12 +208,12 @@ func (cont *Controller) Send(c *gin.Context) {
 // @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/activate [post]
-func (cont *Controller) Activate(c *gin.Context) {
+func (a *App) Activate(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user body.Activate
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
@@ -207,13 +223,13 @@ func (cont *Controller) Activate(c *gin.Context) {
 		return
 	}
 
-	usr, res, err := auth.ActivateByRegToken(user, lang)
+	usr, res, err := auth.ActivateByRegToken(user, lang, a.db.DB)
 	if err != nil {
 		c.JSON(res.Code, res.Object)
 		return
 	}
 
-	c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "account")+usr.Email+" "+language.Language(lang, "success_activate"), 0))
+	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "account")+usr.Email+" "+language.Language(lang, "success_activate"), 0))
 }
 
 // @Summary Get new access token
@@ -227,54 +243,54 @@ func (cont *Controller) Activate(c *gin.Context) {
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/refresh [post]
-func (cont *Controller) Refresh(c *gin.Context) {
+func (a *App) Refresh(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, false)
+	token := auth.CheckAuth(c, false, a.db.DB)
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	data := auth.JwtParse(token)
 	if data.Email == nil {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	var dataToken body.Refresh
 	if err := c.ShouldBindJSON(&dataToken); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
 	var user models.User
-	dataBase.DB.Model(models.User{}).Where("email = ?", data.Email).First(&user)
+	a.db.Model(models.User{}).Where("email = ?", data.Email).First(&user)
 	if user.ID == 0 {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
 	var foundToken models.AccessToken
-	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
+	a.db.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
 	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
 	if uint(foundToken.UserId) != user.ID {
-		cont.logger.Error("Check user access tokens. Found id != userID from jwt")
+		a.logger.Error("Check user access tokens. Found id != userID from jwt")
 		return
 	}
 
 	if auth.CheckTokenExpiration(dataToken.Token) {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
 	if dataToken.Token != foundToken.RefreshToken {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 
-	dataBase.DB.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(user.ID))).Delete(foundToken)
+	a.db.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(user.ID))).Delete(foundToken)
 	access, refresh, err := auth.GenerateJWT(auth.TokenData{
 		Authorized: true,
 		Email:      user.Email,
@@ -289,7 +305,7 @@ func (cont *Controller) Refresh(c *gin.Context) {
 		RefreshToken: refresh,
 	}
 
-	dataBase.DB.Model(models.AccessToken{}).Create(newTokens)
+	a.db.Model(models.AccessToken{}).Create(newTokens)
 	c.JSON(http.StatusOK, newTokens)
 }
 
@@ -303,26 +319,26 @@ func (cont *Controller) Refresh(c *gin.Context) {
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/logout [post]
-func (cont *Controller) Logout(c *gin.Context) {
+func (a *App) Logout(c *gin.Context) {
 	lang := language.LangValue(c)
 	token := auth.GetAuth(c)
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	var foundToken []models.AccessToken
-	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&foundToken)
+	a.db.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&foundToken)
 	if len(foundToken) == 0 {
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	if len(foundToken) > 1 {
-		c.JSON(http.StatusForbidden, handlers.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
+		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
 		return
 	}
 
-	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
-	c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "successfuly_logout"), 0))
+	a.db.Model(models.AccessToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
+	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "successfuly_logout"), 0))
 }
 
 // @Summary Check registration code if exist
@@ -338,43 +354,43 @@ func (cont *Controller) Logout(c *gin.Context) {
 // @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/register/check [post]
-func (cont *Controller) CheckRegistrationCode(c *gin.Context) {
+func (a *App) CheckRegistrationCode(c *gin.Context) {
 	lang := language.LangValue(c)
 	var code models.RegistrationCodeBody
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &code); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
 	var foundCodes []models.RegToken
 
-	dataBase.DB.Model(models.RegToken{}).Where("code = ?", code.Code).Find(&foundCodes)
+	a.db.Model(models.RegToken{}).Where("code = ?", code.Code).Find(&foundCodes)
 	if len(foundCodes) <= 0 || foundCodes[0].Type != 0 {
-		c.JSON(http.StatusNotFound, handlers.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
+		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
 		return
 	}
 
 	var user []models.User
-	dataBase.DB.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&user)
+	a.db.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&user)
 	if len(user) <= 0 {
-		c.JSON(http.StatusNotFound, handlers.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
+		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
 		return
 	}
 
 	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
-		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", foundCodes[0]).Delete(foundCodes[0])
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
+		a.db.Model(&models.RegToken{}).Where("code = ?", foundCodes[0]).Delete(foundCodes[0])
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
 		return
 	}
 
 	if user[0].Active {
-		c.JSON(http.StatusForbidden, handlers.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
+		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
 		return
 	}
 
@@ -397,13 +413,13 @@ func (cont *Controller) CheckRegistrationCode(c *gin.Context) {
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/recovery [post]
-func (cont *Controller) Recovery(c *gin.Context) {
+func (a *App) Recovery(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user models.SendMail
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 	if err := json.Unmarshal(rawData, &user); err != nil {
@@ -413,24 +429,24 @@ func (cont *Controller) Recovery(c *gin.Context) {
 		return
 	}
 	if user.Email == "" {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "email_empty"), errorcodes.EmptyEmail))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "email_empty"), errorcodes.EmptyEmail))
 		return
 	}
 
 	var foundUser models.User
-	dataBase.DB.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
+	a.db.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
-		c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "email_sent")+user.Email, 0))
+		c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "email_sent")+user.Email, 0))
 		return
 	}
 
 	var checkUser models.RegToken
 
-	dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).First(&checkUser)
+	a.db.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).First(&checkUser)
 	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
-		dataBase.DB.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
+		a.db.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
 	} else {
-		c.JSON(http.StatusForbidden, handlers.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorcodes.EmailAlreadySent))
+		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorcodes.EmailAlreadySent))
 		return
 	}
 
@@ -444,17 +460,17 @@ func (cont *Controller) Recovery(c *gin.Context) {
 			"\nName: "+foundUser.Name+
 			"\nSurname: "+foundUser.Surname+
 			"\nCreated: "+foundUser.Created,
-		dataBase.DB) {
-		dataBase.DB.Model(&models.RegToken{}).Create(models.RegToken{
+		a.db.DB) {
+		a.db.Model(&models.RegToken{}).Create(models.RegToken{
 			UserId:  int(foundUser.ID),
 			Type:    1,
 			Code:    code,
 			Created: dataBase.TimeNow(),
 		})
-		c.JSON(http.StatusOK, handlers.ResponseMsg(true, "Email sent to "+foundUser.Email, 0))
+		c.JSON(http.StatusOK, models.ResponseMsg(true, "Email sent to "+foundUser.Email, 0))
 		return
 	} else {
-		c.JSON(http.StatusForbidden, handlers.ResponseMsg(false, language.Language(lang, "email_error"), errorcodes.EmailSendError))
+		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "email_error"), errorcodes.EmailSendError))
 		return
 	}
 }
@@ -471,50 +487,50 @@ func (cont *Controller) Recovery(c *gin.Context) {
 // @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/recovery/submit [post]
-func (cont *Controller) RecoverySubmit(c *gin.Context) {
+func (a *App) RecoverySubmit(c *gin.Context) {
 	lang := language.LangValue(c)
 	var recoveryBody models.RecoverySubmit
 
 	rawData, err := c.GetRawData()
 	if err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
 	if err := json.Unmarshal(rawData, &recoveryBody); err != nil {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
 	if recoveryBody.Code == "" || recoveryBody.Password == "" {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "code_password_empty"), errorcodes.CodeOrPasswordEmpty))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "code_password_empty"), errorcodes.CodeOrPasswordEmpty))
 		return
 	}
 
 	digit, symbols := utils.PasswordChecker(recoveryBody.Password)
 	if !digit || !symbols {
-		c.JSON(http.StatusBadRequest, handlers.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
 	var foundCodes []models.RegToken
-	dataBase.DB.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).Find(&foundCodes)
+	a.db.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).Find(&foundCodes)
 	if len(foundCodes) <= 0 || len(foundCodes) > 1 || foundCodes[0].Type != 1 {
-		c.JSON(http.StatusNotFound, handlers.ResponseMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
+		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
 		return
 	}
 
 	var foundUser []models.User
-	dataBase.DB.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&foundUser)
+	a.db.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&foundUser)
 	if len(foundUser) <= 0 || len(foundUser) > 1 {
-		dataBase.DB.Model(models.RegToken{}).Delete(foundCodes)
-		c.JSON(http.StatusNotFound, handlers.ResponseMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
+		a.db.Model(models.RegToken{}).Delete(foundCodes)
+		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
 		return
 	}
 
 	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
-		dataBase.DB.Model(&models.RegToken{}).Where("code = ?", foundCodes[0].Code).Delete(foundCodes[0])
-		c.JSON(http.StatusUnauthorized, handlers.ResponseMsg(false, language.Language(lang, "recovery_code_expired"), errorcodes.RecoveryCodeExpired))
+		a.db.Model(&models.RegToken{}).Where("code = ?", foundCodes[0].Code).Delete(foundCodes[0])
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "recovery_code_expired"), errorcodes.RecoveryCodeExpired))
 		return
 	}
 
@@ -522,21 +538,21 @@ func (cont *Controller) RecoverySubmit(c *gin.Context) {
 	fmt.Println(len(foundUser))
 
 	var foundPass []models.UserPass
-	dataBase.DB.Model(models.UserPass{}).Where("user_id = ?", foundUser[0].ID).Find(&foundPass)
+	a.db.Model(models.UserPass{}).Where("user_id = ?", foundUser[0].ID).Find(&foundPass)
 	fmt.Print(len(foundPass))
 	if len(foundPass) <= 0 {
-		dataBase.DB.Model(models.UserPass{}).Create(models.UserPass{
+		a.db.Model(models.UserPass{}).Create(models.UserPass{
 			UserId:  foundUser[0].ID,
 			Pass:    hashPassword,
 			Updated: dataBase.TimeNow(),
 		})
 	} else if len(foundPass) == 1 {
-		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("pass", hashPassword)
-		dataBase.DB.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("updated", dataBase.TimeNow())
+		a.db.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("pass", hashPassword)
+		a.db.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("updated", dataBase.TimeNow())
 	} else {
-		c.JSON(http.StatusInternalServerError, handlers.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
 		return
 	}
 
-	c.JSON(http.StatusOK, handlers.ResponseMsg(true, language.Language(lang, "password_reseted"), 0))
+	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "password_reseted"), 0))
 }

@@ -1,13 +1,15 @@
 package auth
 
 import (
-	dataBase "backend/internal/dataBase/models"
-	"backend/models"
 	"fmt"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"gorm.io/gorm"
+
+	"backend/models"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -128,14 +130,14 @@ func GetAuth(c *gin.Context) string {
 	return cleanedToken
 }
 
-func CheckAuth(c *gin.Context, checkExpiried bool) string {
+func CheckAuth(c *gin.Context, checkExpiried bool, db *gorm.DB) string {
 	token := strings.Replace(c.GetHeader("Authorization"), "Bearer ", "", 1)
 	if token == "" {
 		return ""
 	}
 
 	var dbToken []models.AccessToken
-	dataBase.DB.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&dbToken)
+	db.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&dbToken)
 	if len(dbToken) <= 0 {
 		return ""
 	}
@@ -149,7 +151,7 @@ func CheckAuth(c *gin.Context, checkExpiried bool) string {
 		panic("incorrect user email")
 	}
 	var foundUsers []models.User
-	dataBase.DB.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUsers)
+	db.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUsers)
 	if len(foundUsers) <= 0 {
 		return ""
 	}
