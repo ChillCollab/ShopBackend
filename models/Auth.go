@@ -61,6 +61,12 @@ type AccessToken struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
+type RejectedToken struct {
+	UserId       uint   `gorm:"unique" json:"user_id"`
+	AccessToken  string `gorm:"unique" json:"access_token"`
+	RefreshToken string `gorm:"unique" json:"refresh_token"`
+}
+
 type ChangePassword struct {
 	OldPassword string `json:"old_password"`
 	NewPassword string `json:"new_password"`

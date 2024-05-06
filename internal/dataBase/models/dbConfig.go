@@ -56,6 +56,7 @@ func InitDB() error {
 		&models.Category{},
 		&models.CategoryDescription{},
 		&models.CategoryImage{},
+		&models.RejectedToken{},
 	); err != nil {
 		return err
 	}
