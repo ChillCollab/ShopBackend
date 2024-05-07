@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"backend/docs"
@@ -9,6 +10,7 @@ import (
 	"backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 type server interface {
@@ -20,6 +22,12 @@ type server interface {
 // @name Authorization
 func main() {
 	log := logger.GetLogger()
+
+	err := godotenv.Load("../.env")
+	if err != nil {
+		panic(err)
+	}
+
 	db, err := dataBase.InitDB(log)
 	if err != nil {
 		log.Fatalln("error init database:", err)
@@ -29,6 +37,7 @@ func main() {
 	var srv server
 	srv, err = api.New(gin.Default(), db, log)
 	if err != nil {
+		fmt.Println(1)
 		log.Fatalln("error init api:", err)
 	}
 	log.Logger.Info("API created")

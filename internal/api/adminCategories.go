@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"backend/internal/api/middlewares/auth"
-	"backend/internal/api/middlewares/handlers"
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
 	"backend/models"
@@ -294,7 +293,7 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 	}
 
 	newCategory := models.Category{
-		Name:       handlers.IfEmpty(categoryBody.Name, foundCategory[0].Name),
+		Name:       utils.IfEmpty(categoryBody.Name, foundCategory[0].Name),
 		CategoryID: foundCategory[0].CategoryID,
 		CreatorID:  foundCategory[0].CreatorID,
 		Created:    foundCategory[0].Created,
@@ -302,13 +301,13 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 	}
 	newCategoryDescription := models.CategoryDescription{
 		CategoryID:  foundCategoryDescription[0].CategoryID,
-		Description: handlers.IfEmpty(categoryBody.Description, foundCategoryDescription[0].Description),
+		Description: utils.IfEmpty(categoryBody.Description, foundCategoryDescription[0].Description),
 		Created:     foundCategoryDescription[0].Created,
 		Updated:     dataBase.TimeNow(),
 	}
 	newCategoryImage := models.CategoryImage{
 		CategoryID: foundCategoryImage[0].CategoryID,
-		Image:      handlers.IfEmpty(categoryBody.Image, foundCategoryImage[0].Image),
+		Image:      utils.IfEmpty(categoryBody.Image, foundCategoryImage[0].Image),
 		Created:    foundCategoryImage[0].Created,
 		Updated:    dataBase.TimeNow(),
 	}

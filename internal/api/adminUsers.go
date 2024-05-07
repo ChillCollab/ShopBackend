@@ -7,9 +7,8 @@ import (
 	"strings"
 
 	"backend/internal/api/middlewares/auth"
-	"backend/internal/api/middlewares/handlers"
 	"backend/internal/api/middlewares/images"
-	"backend/internal/api/middlewares/user"
+	userMiddlewares "backend/internal/api/middlewares/user"
 	"backend/internal/errorCodes"
 	"backend/models"
 	"backend/models/language"
@@ -151,16 +150,16 @@ func (a *App) ChangeUser(c *gin.Context) {
 		return
 	}
 
-	email := handlers.IfEmpty(user.Email, foundUser.Email)
+	email := utils.IfEmpty(user.Email, foundUser.Email)
 	if valid := utils.MailValidator(email); !valid {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email"), errorCodes.IncorrectEmail))
 		return
 	}
 
-	foundUser.Login = handlers.IfEmpty(user.Login, foundUser.Login)
-	foundUser.Name = handlers.IfEmpty(user.Name, foundUser.Name)
-	foundUser.Surname = handlers.IfEmpty(user.Surname, foundUser.Surname)
-	foundUser.Phone = handlers.IfEmpty(user.Phone, foundUser.Phone)
+	foundUser.Login = utils.IfEmpty(user.Login, foundUser.Login)
+	foundUser.Name = utils.IfEmpty(user.Name, foundUser.Name)
+	foundUser.Surname = utils.IfEmpty(user.Surname, foundUser.Surname)
+	foundUser.Phone = utils.IfEmpty(user.Phone, foundUser.Phone)
 	foundUser.Email = email
 
 	var foundRole []models.UserRole

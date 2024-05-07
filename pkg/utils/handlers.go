@@ -1,4 +1,4 @@
-package handlers
+package utils
 
 func IfEmpty(value string, defaultValue string) string {
 	if value == "" {

@@ -22,6 +22,12 @@ func New(ip string, port string, username string, password string) *RabbitMQ {
 	}
 }
 
-func (rabbit *RabbitMQ) Init() {
+func (rabbit *RabbitMQ) Init() error {
 	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/", rabbit.Username, rabbit.Password, rabbit.IP, rabbit.Port))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	return nil
 }

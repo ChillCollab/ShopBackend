@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"backend/internal/api/middlewares/auth"
-	handlers2 "backend/internal/api/middlewares/handlers"
 	"backend/internal/api/middlewares/images"
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
@@ -228,10 +227,10 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 	}
 
 	newData := models.User{
-		Login:   handlers2.IfEmpty(user.Login, users[0].Login),
-		Name:    handlers2.IfEmpty(user.Name, users[0].Name),
-		Surname: handlers2.IfEmpty(user.Surname, users[0].Surname),
-		Phone:   handlers2.IfEmpty(user.Phone, users[0].Phone),
+		Login:   utils.IfEmpty(user.Login, users[0].Login),
+		Name:    utils.IfEmpty(user.Name, users[0].Name),
+		Surname: utils.IfEmpty(user.Surname, users[0].Surname),
+		Phone:   utils.IfEmpty(user.Phone, users[0].Phone),
 		Active:  users[0].Active,
 		Email:   users[0].Email,
 		Created: users[0].Created,
