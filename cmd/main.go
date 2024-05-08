@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"backend/docs"
@@ -37,7 +36,6 @@ func main() {
 	var srv server
 	srv, err = api.New(gin.Default(), db, log)
 	if err != nil {
-		fmt.Println(1)
 		log.Fatalln("error init api:", err)
 	}
 	log.Logger.Info("API created")
