@@ -2,7 +2,7 @@ package dataBase
 
 import "backend/models"
 
-func (db *Database) UserInfo(login string) (models.FullUserInfo, models.AccessToken, error) {
+func (db *Database) UserInfo(login string) (models.FullUserInfo, models.AuthToken, error) {
 	var fullUserInfo models.FullUserInfo
 
 	data := db.DB.
@@ -14,10 +14,10 @@ func (db *Database) UserInfo(login string) (models.FullUserInfo, models.AccessTo
 		First(&models.User{}).First(&fullUserInfo)
 
 	if data.RowsAffected == 0 {
-		return fullUserInfo, models.AccessToken{}, data.Error
+		return fullUserInfo, models.AuthToken{}, data.Error
 	}
-	var tokens models.AccessToken
-	err := db.DB.Model(models.AccessToken{}).Where("user_id = ?", fullUserInfo.ID).First(&tokens).Error
+	var tokens models.AuthToken
+	err := db.DB.Model(models.AuthToken{}).Where("user_id = ?", fullUserInfo.ID).First(&tokens).Error
 	if err != nil {
 		tokens.AccessToken = ""
 		tokens.RefreshToken = ""

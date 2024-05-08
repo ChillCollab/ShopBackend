@@ -22,6 +22,11 @@ type UserLoginInfo struct {
 	Alive        int    `json:"alive"`
 }
 
+type TokenData struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
 type SendMail struct {
 	Email string `json:"email"`
 }
@@ -55,7 +60,7 @@ type RegToken struct {
 	Created string `json:"created"`
 }
 
-type AccessToken struct {
+type AuthToken struct {
 	UserId       uint   `gorm:"unique" json:"user_id"`
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`

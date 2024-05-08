@@ -399,12 +399,12 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		return
 	}
 
-	tokens := models.AccessToken{
+	tokens := models.AuthToken{
 		UserId:       users[0].ID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 	}
-	if err := a.db.Model(models.AccessToken{}).Where("user_id = ?", users[0].ID).Updates(tokens); err.Error != nil {
+	if err := a.db.Model(models.AuthToken{}).Where("user_id = ?", users[0].ID).Updates(tokens); err.Error != nil {
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "token_update_error"), errorCodes.TokenUpdateError))
 		return
 	}

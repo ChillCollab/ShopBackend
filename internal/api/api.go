@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"backend/internal/dataBase"
+	"backend/pkg/broker"
 	"backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
@@ -19,16 +20,24 @@ type App struct {
 	server *gin.Engine
 	db     *dataBase.Database
 	logger logger.Logger
+	broker *broker.Client
 }
 
 func New(server *gin.Engine, dataBase *dataBase.Database, logger logger.Logger) (*App, error) {
+
+	client, errInit := broker.RedisInit()
+	if errInit != nil {
+		return nil, fmt.Errorf("broker can't be created: %v", errInit)
+	}
+	logger.Info("Redis connected!")
+
 	app := &App{
 		server: server,
 		db:     dataBase,
 		logger: logger,
+		broker: client,
 	}
 
-	//Хуевый путь. Ты когда закомпилишь бинерник, .env хуй найдешь.
 	err := godotenv.Load("../.env")
 	if err != nil {
 		return nil, fmt.Errorf("env can't be loaded: %v", err)

@@ -22,7 +22,7 @@ type ginResponse struct {
 	Object any
 }
 
-func CheckTokens(user models.FullUserInfo, tokens models.AccessToken, db *gorm.DB) (models.AccessToken, error) {
+func CheckTokens(user models.FullUserInfo, tokens models.AuthToken, db *gorm.DB) (models.AuthToken, error) {
 	if tokens.AccessToken == "" || tokens.RefreshToken == "" {
 		access, refresh, err := GenerateJWT(TokenData{
 			Authorized: true,
@@ -31,19 +31,19 @@ func CheckTokens(user models.FullUserInfo, tokens models.AccessToken, db *gorm.D
 		})
 
 		if err != nil {
-			return models.AccessToken{}, err
+			return models.AuthToken{}, err
 		}
 
-		createdTokens := models.AccessToken{
+		createdTokens := models.AuthToken{
 			UserId:       user.ID,
 			AccessToken:  access,
 			RefreshToken: refresh,
 		}
 
 		// Убирай обращение к БД отсюда
-		createError := db.Model(models.AccessToken{}).Create(createdTokens).Error
+		createError := db.Model(models.AuthToken{}).Create(createdTokens).Error
 		if createError != nil {
-			return models.AccessToken{}, createError
+			return models.AuthToken{}, createError
 		}
 
 		return createdTokens, nil
@@ -51,7 +51,7 @@ func CheckTokens(user models.FullUserInfo, tokens models.AccessToken, db *gorm.D
 
 	alive, err := CheckTokenRemaining(tokens.AccessToken)
 	if err != nil {
-		return models.AccessToken{}, err
+		return models.AuthToken{}, err
 	}
 
 	if alive <= 0 {
@@ -61,18 +61,18 @@ func CheckTokens(user models.FullUserInfo, tokens models.AccessToken, db *gorm.D
 			Role:       user.Role,
 		})
 		if err != nil {
-			return models.AccessToken{}, err
+			return models.AuthToken{}, err
 		}
 
-		createdTokens := models.AccessToken{
+		createdTokens := models.AuthToken{
 			UserId:       user.ID,
 			AccessToken:  access,
 			RefreshToken: refresh,
 		}
 
-		createError := db.Model(models.AccessToken{}).Where("user_id = ?", user.ID).Updates(createdTokens).Error
+		createError := db.Model(models.AuthToken{}).Where("user_id = ?", user.ID).Updates(createdTokens).Error
 		if createError != nil {
-			return models.AccessToken{}, createError
+			return models.AuthToken{}, createError
 		}
 
 		return createdTokens, nil

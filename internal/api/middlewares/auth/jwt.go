@@ -136,8 +136,8 @@ func CheckAuth(c *gin.Context, checkExpiried bool, db *gorm.DB) string {
 		return ""
 	}
 
-	var dbToken []models.AccessToken
-	db.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&dbToken)
+	var dbToken []models.AuthToken
+	db.Model(models.AuthToken{}).Where("access_token = ?", token).Find(&dbToken)
 	if len(dbToken) <= 0 {
 		return ""
 	}

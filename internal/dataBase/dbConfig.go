@@ -50,7 +50,7 @@ func InitDB(logger logger.Logger) (*Database, error) {
 		&models.UserRole{},
 		&models.RegToken{},
 		&models.UserPass{},
-		&models.AccessToken{},
+		&models.AuthToken{},
 		&models.EmailChange{},
 		&models.Category{},
 		&models.CategoryDescription{},

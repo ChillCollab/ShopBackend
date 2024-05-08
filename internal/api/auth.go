@@ -31,6 +31,7 @@ import (
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Router /auth/login [post]
+
 func (a *App) Login(c *gin.Context) {
 	var user body.Login
 
@@ -85,7 +86,7 @@ func (a *App) Login(c *gin.Context) {
 		},
 	}
 
-	tokens, errors := auth.CheckTokens(userInfo, models.AccessToken{UserId: userInfo.ID, AccessToken: tokens.AccessToken, RefreshToken: tokens.RefreshToken}, a.db.DB)
+	tokens, errors := auth.CheckTokens(userInfo, models.AuthToken{UserId: userInfo.ID, AccessToken: tokens.AccessToken, RefreshToken: tokens.RefreshToken}, a.db.DB)
 	if errors != nil {
 		c.JSON(http.StatusInternalServerError, errors)
 		return
@@ -268,8 +269,8 @@ func (a *App) Refresh(c *gin.Context) {
 		return
 	}
 
-	var foundToken models.AccessToken
-	a.db.Model(models.AccessToken{}).Where("access_token = ?", token).First(&foundToken)
+	var foundToken models.AuthToken
+	a.db.Model(models.AuthToken{}).Where("access_token = ?", token).First(&foundToken)
 	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
@@ -290,7 +291,7 @@ func (a *App) Refresh(c *gin.Context) {
 		return
 	}
 
-	a.db.Model(models.AccessToken{}).Where("user_id = ?", strconv.Itoa(int(user.ID))).Delete(foundToken)
+	a.db.Model(models.AuthToken{}).Where("user_id = ?", strconv.Itoa(int(user.ID))).Delete(foundToken)
 	access, refresh, err := auth.GenerateJWT(auth.TokenData{
 		Authorized: true,
 		Email:      user.Email,
@@ -299,13 +300,13 @@ func (a *App) Refresh(c *gin.Context) {
 		panic(err)
 	}
 
-	newTokens := models.AccessToken{
+	newTokens := models.AuthToken{
 		UserId:       user.ID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 	}
 
-	a.db.Model(models.AccessToken{}).Create(newTokens)
+	a.db.Model(models.AuthToken{}).Create(newTokens)
 	c.JSON(http.StatusOK, newTokens)
 }
 
@@ -326,8 +327,8 @@ func (a *App) Logout(c *gin.Context) {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
-	var foundToken []models.AccessToken
-	a.db.Model(models.AccessToken{}).Where("access_token = ?", token).Find(&foundToken)
+	var foundToken []models.AuthToken
+	a.db.Model(models.AuthToken{}).Where("access_token = ?", token).Find(&foundToken)
 	if len(foundToken) == 0 {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
@@ -337,7 +338,7 @@ func (a *App) Logout(c *gin.Context) {
 		return
 	}
 
-	a.db.Model(models.AccessToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
+	a.db.Model(models.AuthToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "successfuly_logout"), 0))
 }
 
