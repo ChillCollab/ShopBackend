@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gin-contrib/cors"
-	"github.com/joho/godotenv"
-
 	"backend/internal/dataBase"
 	"backend/pkg/broker"
 	"backend/pkg/logger"
+	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
@@ -27,7 +25,7 @@ func New(server *gin.Engine, dataBase *dataBase.Database, logger logger.Logger) 
 
 	client, errInit := broker.RedisInit()
 	if errInit != nil {
-		return nil, fmt.Errorf("broker can't be created: %v", errInit)
+		return nil, fmt.Errorf("broker was not connected: %v", errInit)
 	}
 	logger.Info("Redis connected!")
 
@@ -36,11 +34,6 @@ func New(server *gin.Engine, dataBase *dataBase.Database, logger logger.Logger) 
 		db:     dataBase,
 		logger: logger,
 		broker: client,
-	}
-
-	err := godotenv.Load("../.env")
-	if err != nil {
-		return nil, fmt.Errorf("env can't be loaded: %v", err)
 	}
 
 	app.logger.Info("Env loaded")

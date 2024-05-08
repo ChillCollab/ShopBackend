@@ -45,7 +45,7 @@ func (a *App) Login(c *gin.Context) {
 		return
 	}
 
-	userInfo, tokens, err := a.db.UserInfo(user.Login)
+	userInfo, err := a.db.UserInfo(user.Login)
 	if err != nil {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -83,24 +83,31 @@ func (a *App) Login(c *gin.Context) {
 			Email:   userInfo.Email,
 			Phone:   userInfo.Phone,
 			Role:    userInfo.Role,
+			Created: userInfo.Created,
+			Updated: userInfo.Updated,
 		},
 	}
 
-	tokens, errors := auth.CheckTokens(userInfo, models.AuthToken{UserId: userInfo.ID, AccessToken: tokens.AccessToken, RefreshToken: tokens.RefreshToken}, a.db.DB)
-	if errors != nil {
-		c.JSON(http.StatusInternalServerError, errors)
+	accessToken, refreshToken, err := auth.GenerateJWT(auth.TokenData{
+		Authorized: true,
+		Email:      userInfo.Email,
+		Role:       userInfo.Role,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, err)
 		return
+
 	}
 
-	alive, err := auth.CheckTokenRemaining(tokens.AccessToken)
+	alive, err := auth.CheckTokenRemaining(accessToken)
 	if err != nil {
 		a.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
-	authResponse.AccessToken = tokens.AccessToken
-	authResponse.RefreshToken = tokens.RefreshToken
+	authResponse.AccessToken = accessToken
+	authResponse.RefreshToken = refreshToken
 	authResponse.Alive = alive
 
 	c.JSON(http.StatusOK, authResponse)
