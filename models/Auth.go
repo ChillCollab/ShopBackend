@@ -7,7 +7,7 @@ type FullUserInfo struct {
 	Surname string `json:"surname"`
 	Email   string `json:"email"`
 	Phone   string `json:"phone"`
-	Role    int    `json:"role"`
+	RoleId  int    `json:"role_id"`
 	Active  bool   `json:"active"`
 	Pass    string `json:"pass"`
 	Alive   int    `json:"alive"`
