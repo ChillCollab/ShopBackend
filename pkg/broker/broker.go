@@ -2,7 +2,6 @@ package broker
 
 import (
 	"encoding/json"
-	"fmt"
 	"os"
 
 	"github.com/go-redis/redis"
@@ -15,12 +14,9 @@ type Client struct {
 // var ctx = context.Background()
 
 func RedisInit() (red *Client, errors error) {
-
-	fmt.Println(os.Getenv("REDIS_HOST"))
-	fmt.Println(os.Getenv("REDIS_PASSWORD"))
 	client := redis.NewClient(&redis.Options{
 		Addr:     os.Getenv("REDIS_HOST"),
-		Password: "",
+		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
 

@@ -49,6 +49,7 @@ func InitDB(logger logger.Logger) (*Database, error) {
 		&models.File{},
 		&models.UserRole{},
 		&models.RegToken{},
+		&models.UserPass{},
 		&models.AuthToken{},
 		&models.EmailChange{},
 		&models.Category{},
@@ -60,10 +61,7 @@ func InitDB(logger logger.Logger) (*Database, error) {
 	}
 
 	createConfig(db)
-	errUser := createDefaultUserIfNotExists(db)
-	if errUser != nil {
-		return nil, errUser
-	}
+	createDefaultUserIfNotExists(db)
 
 	logger.Info("Database migrated successfully")
 
@@ -112,10 +110,10 @@ func createConfig(db *gorm.DB) {
 	}
 }
 
-func createDefaultUserIfNotExists(db *gorm.DB) error {
+func createDefaultUserIfNotExists(db *gorm.DB) {
 	var count int64
 	if err := db.Model(&models.User{}).Where("login = ?", "universal").Count(&count).Error; err != nil {
-		return err
+		panic(err)
 	}
 	if count == 0 {
 		defaultUser := models.User{
@@ -126,17 +124,26 @@ func createDefaultUserIfNotExists(db *gorm.DB) error {
 			Email:   "uni@example.com",
 			Phone:   "00000000000",
 			Active:  true,
-			RoleId:  1,
-			Pass:    utils.Hash("admin"),
 			Created: TimeNow(),
 			Updated: TimeNow(),
 		}
 		if err := db.Create(&defaultUser).Error; err != nil {
-			return err
+			panic(err)
 		}
 
+		var user models.User
+		db.Model(&models.User{}).Where("login = ?", "universal").First(&user)
+		db.Model(&models.UserPass{}).Create(models.UserPass{
+			UserId:  user.ID,
+			Pass:    utils.Hash("admin"),
+			Updated: TimeNow(),
+		})
+		db.Model(&models.UserRole{}).Create(&models.UserRole{
+			ID:      user.ID,
+			Role:    1,
+			Updated: TimeNow(),
+		})
 	}
-	return nil
 }
 
 func TimeNow() string {

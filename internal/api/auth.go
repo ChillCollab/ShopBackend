@@ -45,7 +45,7 @@ func (a *App) Login(c *gin.Context) {
 		return
 	}
 
-	userInfo, err := a.db.UserInfo(user.Login)
+	userInfo, tokens, err := a.db.UserInfo(user.Login)
 	if err != nil {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -82,32 +82,25 @@ func (a *App) Login(c *gin.Context) {
 			Surname: userInfo.Surname,
 			Email:   userInfo.Email,
 			Phone:   userInfo.Phone,
-			Role:    userInfo.RoleId,
-			Created: userInfo.Created,
-			Updated: userInfo.Updated,
+			Role:    userInfo.Role,
 		},
 	}
 
-	accessToken, refreshToken, err := auth.GenerateJWT(auth.TokenData{
-		Authorized: true,
-		Email:      userInfo.Email,
-		Role:       userInfo.RoleId,
-	})
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, err)
+	tokens, errors := auth.CheckTokens(userInfo, models.AuthToken{UserId: userInfo.ID, AccessToken: tokens.AccessToken, RefreshToken: tokens.RefreshToken}, a.db.DB)
+	if errors != nil {
+		c.JSON(http.StatusInternalServerError, errors)
 		return
-
 	}
 
-	alive, err := auth.CheckTokenRemaining(accessToken)
+	alive, err := auth.CheckTokenRemaining(tokens.AccessToken)
 	if err != nil {
 		a.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, err)
 		return
 	}
 
-	authResponse.AccessToken = accessToken
-	authResponse.RefreshToken = refreshToken
+	authResponse.AccessToken = tokens.AccessToken
+	authResponse.RefreshToken = tokens.RefreshToken
 	authResponse.Alive = alive
 
 	c.JSON(http.StatusOK, authResponse)
@@ -126,47 +119,18 @@ func (a *App) Login(c *gin.Context) {
 // @Router /auth/register [post]
 func (a *App) Register(c *gin.Context) {
 	lang := language.LangValue(c)
+
 	var user body.Register
+
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
-	if user.Name == "" || user.Surname == "" {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_name_or_surname"), errorcodes.NameOfSurnameIncorrect))
-		return
-	}
-
-	if !utils.MailValidator(user.Email) {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email"), errorcodes.IncorrectEmail))
-		return
-	}
-	if user.Login == "" {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "login_empty"), errorcodes.LoginCanBeEmpty))
-		return
-	}
-	if len(user.Name) > 32 || len(user.Surname) > 32 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "name_surname_long"), errorcodes.IncorrectInfoData))
-		return
-	}
-	if ok := utils.ValidateLogin(user.Login); !ok {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "login_can_be_include_letters_digits"), errorcodes.IncorrectLogin))
-		return
-	}
-
-	var ifExist []models.User
-	var foundLogin []models.User
-
-	a.db.Where("email = ?", user.Email).Find(&ifExist)
-	a.db.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundLogin)
-
-	if len(ifExist) > 0 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_already_exist"), errorcodes.UserAlreadyExist))
-		return
-	}
-	if len(foundLogin) > 0 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "login_already_exist"), errorcodes.LoginAlreadyExist))
+	success, res := auth.RegisterHandler(user, lang, a.db.DB)
+	if !success {
+		c.JSON(res.Code, res.Object)
 		return
 	}
 
@@ -179,9 +143,9 @@ func (a *App) Register(c *gin.Context) {
 		Updated: dataBase.TimeNow(),
 	}
 
-	errCreate := a.db.CreateUser(completeUser)
-	if errCreate != nil {
-		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+	createRes, err := auth.CreateUser(completeUser, lang, a.db.DB)
+	if err != nil {
+		c.JSON(createRes.Code, createRes.Object)
 		return
 	}
 
@@ -194,8 +158,6 @@ func (a *App) Register(c *gin.Context) {
 			Email:   completeUser.Email,
 			Role:    0,
 			Phone:   completeUser.Phone,
-			Created: completeUser.Created,
-			Updated: completeUser.Updated,
 		},
 	})
 }

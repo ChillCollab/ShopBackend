@@ -1,7 +1,6 @@
 package main
 
 import (
-	"backend/internal/config"
 	"os"
 
 	"backend/docs"
@@ -10,6 +9,7 @@ import (
 	"backend/pkg/logger"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 type server interface {
@@ -22,9 +22,9 @@ type server interface {
 func main() {
 	log := logger.GetLogger()
 
-	err := config.Get()
+	err := godotenv.Load("../.env")
 	if err != nil {
-		log.Fatalln("error config:", err)
+		panic(err)
 	}
 
 	db, err := dataBase.InitDB(log)
