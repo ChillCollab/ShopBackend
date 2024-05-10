@@ -22,96 +22,7 @@ type ginResponse struct {
 	Object any
 }
 
-func CheckTokens(user models.FullUserInfo, tokens models.AuthToken, db *gorm.DB) (models.AuthToken, error) {
-	if tokens.AccessToken == "" || tokens.RefreshToken == "" {
-		access, refresh, err := GenerateJWT(TokenData{
-			Authorized: true,
-			Email:      user.Email,
-			Role:       user.Role,
-		})
-
-		if err != nil {
-			return models.AuthToken{}, err
-		}
-
-		createdTokens := models.AuthToken{
-			UserId:       user.ID,
-			AccessToken:  access,
-			RefreshToken: refresh,
-		}
-
-		// Убирай обращение к БД отсюда
-		createError := db.Model(models.AuthToken{}).Create(createdTokens).Error
-		if createError != nil {
-			return models.AuthToken{}, createError
-		}
-
-		return createdTokens, nil
-	}
-
-	alive, err := CheckTokenRemaining(tokens.AccessToken)
-	if err != nil {
-		return models.AuthToken{}, err
-	}
-
-	if alive <= 0 {
-		access, refresh, err := GenerateJWT(TokenData{
-			Authorized: true,
-			Email:      user.Email,
-			Role:       user.Role,
-		})
-		if err != nil {
-			return models.AuthToken{}, err
-		}
-
-		createdTokens := models.AuthToken{
-			UserId:       user.ID,
-			AccessToken:  access,
-			RefreshToken: refresh,
-		}
-
-		createError := db.Model(models.AuthToken{}).Where("user_id = ?", user.ID).Updates(createdTokens).Error
-		if createError != nil {
-			return models.AuthToken{}, createError
-		}
-
-		return createdTokens, nil
-	}
-	return tokens, nil
-}
-
 func RegisterHandler(user body.Register, lang string, db *gorm.DB) (success bool, res ginResponse) {
-	if user.Name == "" || user.Surname == "" {
-		return false, ginResponse{
-			Code:   http.StatusBadRequest,
-			Object: models.ResponseMsg(false, language.Language(lang, "incorrect_name_or_surname"), errorCodes.NameOfSurnameIncorrect),
-		}
-	}
-	if !utils.MailValidator(user.Email) {
-		return false, ginResponse{
-			Code:   http.StatusBadRequest,
-			Object: models.ResponseMsg(false, language.Language(lang, "incorrect_email"), errorCodes.IncorrectEmail),
-		}
-	} else if user.Login == "" {
-		return false, ginResponse{
-			Code:   http.StatusBadRequest,
-			Object: models.ResponseMsg(false, language.Language(lang, "login_empty"), errorCodes.LoginCanBeEmpty),
-		}
-	}
-
-	if len(user.Name) > 32 || len(user.Surname) > 32 {
-		return false, ginResponse{
-			Code:   http.StatusBadRequest,
-			Object: models.ResponseMsg(false, language.Language(lang, "name_surname_long"), errorCodes.IncorrectInfoData),
-		}
-	}
-
-	if ok := utils.ValidateLogin(user.Login); !ok {
-		return false, ginResponse{
-			Code:   http.StatusBadRequest,
-			Object: models.ResponseMsg(false, language.Language(lang, "login_can_be_include_letters_digits"), errorCodes.IncorrectLogin),
-		}
-	}
 
 	var ifExist []models.User
 	var foundLogin []models.User
@@ -136,32 +47,6 @@ func RegisterHandler(user body.Register, lang string, db *gorm.DB) (success bool
 }
 
 // CreateUser создание пользователя это не Middleware!
-func CreateUser(user models.User, lang string, db *gorm.DB) (res ginResponse, err error) {
-	tx := db.Begin()
-
-	create := tx.Create(&user)
-	if create.Error != nil {
-		tx.Rollback()
-		return ginResponse{
-			Code:   http.StatusInternalServerError,
-			Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
-		}, create.Error
-	}
-
-	roleError := tx.Create(&models.UserRole{ID: user.ID, Role: 0, Updated: dataBase.TimeNow()}).Error
-	if roleError != nil {
-		tx.Rollback()
-		return ginResponse{
-			Code:   http.StatusInternalServerError,
-			Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
-		}, roleError
-	}
-	//ginResponse формировать нужно не здесь
-
-	tx.Commit()
-
-	return ginResponse{}, nil
-}
 
 func SendHanlder(user models.User, lang string, db *gorm.DB) (usr models.User, res ginResponse, err error) {
 

@@ -9,6 +9,8 @@ type User struct {
 	Phone    string `json:"phone"`
 	AvatarId string `json:"avatar_id"`
 	Active   bool   `json:"active"`
+	RoleId   int    `json:"role_id"`
+	Pass     string `json:"pass"`
 	Created  string `json:"created"`
 	Updated  string `json:"updated"`
 }

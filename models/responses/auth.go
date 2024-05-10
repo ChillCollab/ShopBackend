@@ -7,6 +7,8 @@ type UserInfo struct {
 	Email   string `json:"email"`
 	Phone   string `json:"phone"`
 	Role    int    `json:"role"`
+	Created string `json:"created"`
+	Updated string `json:"updated"`
 }
 
 type AuthResponse struct {
