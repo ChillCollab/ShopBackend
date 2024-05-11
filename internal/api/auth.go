@@ -223,8 +223,6 @@ func (a *App) Send(c *gin.Context) {
 		return
 	}
 
-	code := utils.CodeGen()
-
 	if user.Email == "" {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_not_registered"), errorcodes.UserNotFound))
 		return
@@ -260,10 +258,35 @@ func (a *App) Send(c *gin.Context) {
 			}
 		}
 	}
-
-	go auth.SendRegEmail(foundUser, code, 0, a.db.DB)
+	code := utils.CodeGen()
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
+
+	go func(code string) {
+		create := a.db.Model(&models.RegToken{}).Create(models.RegToken{
+			UserId:  int(foundUser.ID),
+			Type:    0,
+			Code:    code,
+			Created: dataBase.TimeNow(),
+		})
+		if create.Error != nil {
+			a.logger.Error("Create mail in table error: " + create.Error.Error())
+			return
+		}
+
+		if !utils.Send(
+			user.Email,
+			"Welcome to Admin Panel!", "Your link for continue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
+				"\n\nEmail: "+foundUser.Email+
+				"\nLogin: "+foundUser.Name+
+				"\nName: "+foundUser.Name+
+				"\nSurname: "+foundUser.Surname+
+				"\nCreated: "+foundUser.Created, a.db.DB) {
+			a.logger.Error("Email send error to address: " + user.Email)
+		}
+
+		a.logger.Info("Email sent to address: " + user.Email)
+	}(code)
 }
 
 // @Summary Activate account

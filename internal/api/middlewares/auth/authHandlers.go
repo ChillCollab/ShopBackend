@@ -13,44 +13,12 @@ import (
 	"backend/models"
 	"backend/models/body"
 	"backend/models/language"
-	"backend/pkg/logger"
 	"backend/pkg/utils"
 )
 
 type ginResponse struct {
 	Code   int
 	Object any
-}
-
-// SendRegEmail это все не middleware
-func SendRegEmail(user models.User, code string, mailType int, db *gorm.DB) {
-
-	logger := logger.GetLogger()
-
-	create := db.Model(&models.RegToken{}).Create(models.RegToken{
-		UserId:  int(user.ID),
-		Type:    mailType,
-		Code:    code,
-		Created: dataBase.TimeNow(),
-	})
-	if create.Error != nil {
-		logger.Error("Create mail in table error: " + create.Error.Error())
-		return
-	}
-
-	if !utils.Send(
-		user.Email,
-		"Welcome to Admin Panel!", "Your link for continue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
-			"\n\nEmail: "+user.Email+
-			"\nLogin: "+user.Name+
-			"\nName: "+user.Name+
-			"\nSurname: "+user.Surname+
-			"\nCreated: "+user.Created,
-		db) {
-		logger.Error("Email send error to address: " + user.Email)
-	}
-
-	logger.Info("Email sent to address: " + user.Email)
 }
 
 func ActivateHandler(user body.Activate, lang string) (res ginResponse, err error) {
