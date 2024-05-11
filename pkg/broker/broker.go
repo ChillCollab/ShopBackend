@@ -56,12 +56,13 @@ func (c *Client) RedisAddToArray(models interface{}) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("added")
 
 	return nil
 }
 
-func (c *Client) RedisGetArray() ([]interface{}, error) {
-	dataJSON, err := c.Client.Get("auth_tokens").Bytes()
+func (c *Client) RedisGetArray(tableName string) ([]interface{}, error) {
+	dataJSON, err := c.Client.Get(tableName).Bytes()
 	if err != nil && err != redis.Nil {
 		return nil, err
 	}
