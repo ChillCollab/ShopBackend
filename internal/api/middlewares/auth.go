@@ -1,11 +1,18 @@
 package middlewares
 
 import (
+	"backend/pkg/broker"
 	"fmt"
 	"github.com/gin-gonic/gin"
 )
 
-func IsAuthorized(c *gin.Context) {
+type Broker struct {
+	*broker.Client
+}
+
+func (br *Broker) IsAuthorized(c *gin.Context) {
 	token := CheckAuth(c, false)
-	fmt.Println(token)
+	data := JwtParse(token)
+	fmt.Println(data.Email)
+	fmt.Println("dadsad")
 }

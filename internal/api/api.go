@@ -1,6 +1,7 @@
 package api
 
 import (
+	"backend/internal/api/middlewares"
 	"fmt"
 	"os"
 
@@ -54,6 +55,7 @@ func (a *App) Run() error {
 }
 
 func (a *App) routes() {
+	client := middlewares.Broker{a.broker}
 	a.server.GET("/swagger/*any",
 		ginSwagger.WrapHandler(swaggerfiles.Handler,
 			ginSwagger.DefaultModelsExpandDepth(1),
@@ -65,7 +67,7 @@ func (a *App) routes() {
 		auth := route.Group("/auth")
 		{
 			auth.POST("/login", a.Login)
-			auth.POST("/refresh", a.Refresh)
+			auth.POST("/refresh", client.IsAuthorized, a.Refresh)
 			auth.POST("/register", a.Register)
 			auth.POST("/activate/send", a.Send) // domen email
 			auth.POST("/activate", a.Activate)
