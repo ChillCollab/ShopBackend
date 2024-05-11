@@ -22,98 +22,6 @@ type ginResponse struct {
 	Object any
 }
 
-func RegisterHandler(user body.Register, lang string, db *gorm.DB) (success bool, res ginResponse) {
-
-	var ifExist []models.User
-	var foundLogin []models.User
-
-	db.Where("email = ?", user.Email).Find(&ifExist)
-	db.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundLogin)
-
-	if len(ifExist) > 0 {
-		return false, ginResponse{
-			Code:   http.StatusBadRequest,
-			Object: models.ResponseMsg(false, language.Language(lang, "user_already_exist"), errorCodes.UserAlreadyExist),
-		}
-	}
-	if len(foundLogin) > 0 {
-		return false, ginResponse{
-			Code:   http.StatusBadRequest,
-			Object: models.ResponseMsg(false, language.Language(lang, "login_already_exist"), errorCodes.LoginAlreadyExist),
-		}
-	}
-
-	return true, ginResponse{}
-}
-
-// CreateUser создание пользователя это не Middleware!
-
-func SendHanlder(user models.User, lang string, db *gorm.DB) (usr models.User, res ginResponse, err error) {
-
-	if user.Email == "" {
-		return models.User{},
-			ginResponse{
-				Code:   http.StatusBadRequest,
-				Object: models.ResponseMsg(false, language.Language(lang, "user_not_registered"), errorCodes.UserNotFound),
-			},
-			errors.New("email is empty")
-	}
-
-	var foundUser models.User
-	db.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
-	if foundUser.Email == "" {
-		return models.User{},
-			ginResponse{
-				Code:   http.StatusBadRequest,
-				Object: models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorCodes.UserNotFound),
-			},
-			errors.New("user not found")
-	}
-
-	var checkUser []models.RegToken
-
-	db.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
-	if len(checkUser) > 1 {
-		del := db.Model(&checkUser).Delete(checkUser)
-		if del.Error != nil {
-			return models.User{},
-				ginResponse{
-					Code:   http.StatusInternalServerError,
-					Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
-				},
-				del.Error
-		}
-		return models.User{},
-			ginResponse{
-				Code:   http.StatusForbidden,
-				Object: models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData),
-			},
-			errors.New("multiple data")
-	}
-	if len(checkUser) > 0 {
-		if checkUser[0].Created > time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
-			return models.User{},
-				ginResponse{
-					Code:   http.StatusBadRequest,
-					Object: models.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorCodes.EmailAlreadySent),
-				},
-				errors.New("already sent")
-		} else {
-			del := db.Model(&models.RegToken{}).Delete("user_id = ?", checkUser[0].UserId)
-			if del.Error != nil {
-				return models.User{},
-					ginResponse{
-						Code:   http.StatusInternalServerError,
-						Object: models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError),
-					},
-					del.Error
-			}
-		}
-	}
-
-	return foundUser, ginResponse{}, nil
-}
-
 // SendRegEmail это все не middleware
 func SendRegEmail(user models.User, code string, mailType int, db *gorm.DB) {
 
@@ -132,17 +40,17 @@ func SendRegEmail(user models.User, code string, mailType int, db *gorm.DB) {
 
 	if !utils.Send(
 		user.Email,
-		"Welcome to Admin Panel!", "Your link for countinue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
+		"Welcome to Admin Panel!", "Your link for continue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
 			"\n\nEmail: "+user.Email+
 			"\nLogin: "+user.Name+
 			"\nName: "+user.Name+
 			"\nSurname: "+user.Surname+
 			"\nCreated: "+user.Created,
 		db) {
-		logger.Error("Email send error to adderess: " + user.Email)
+		logger.Error("Email send error to address: " + user.Email)
 	}
 
-	logger.Info("Email sent to adderess: " + user.Email)
+	logger.Info("Email sent to address: " + user.Email)
 }
 
 func ActivateHandler(user body.Activate, lang string) (res ginResponse, err error) {

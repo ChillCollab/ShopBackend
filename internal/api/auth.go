@@ -96,7 +96,6 @@ func (a *App) Login(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, err)
 		return
-
 	}
 
 	alive, err := auth.CheckTokenRemaining(accessToken)
@@ -226,10 +225,40 @@ func (a *App) Send(c *gin.Context) {
 
 	code := utils.CodeGen()
 
-	foundUser, response, err := auth.SendHanlder(models.User{Email: user.Email}, lang, a.db.DB)
-	if err != nil {
-		c.JSON(response.Code, response.Object)
+	if user.Email == "" {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_not_registered"), errorcodes.UserNotFound))
 		return
+	}
+	var foundUser models.User
+	a.db.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
+	if foundUser.Email == "" {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorcodes.UserNotFound))
+		return
+	}
+
+	var checkUser []models.RegToken
+
+	a.db.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
+	if len(checkUser) > 1 {
+		del := a.db.Model(&checkUser).Delete(checkUser)
+		if del.Error != nil {
+			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+			return
+		}
+		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
+		return
+	}
+	if len(checkUser) > 0 {
+		if checkUser[0].Created > time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
+			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorcodes.EmailAlreadySent))
+			return
+		} else {
+			del := a.db.Model(&models.RegToken{}).Delete("user_id = ?", checkUser[0].UserId)
+			if del.Error != nil {
+				c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+				return
+			}
+		}
 	}
 
 	go auth.SendRegEmail(foundUser, code, 0, a.db.DB)
