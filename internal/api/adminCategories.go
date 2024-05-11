@@ -1,11 +1,11 @@
 package api
 
 import (
+	"backend/internal/api/middlewares"
 	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"backend/internal/api/middlewares/auth"
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
 	"backend/models"
@@ -31,7 +31,7 @@ import (
 func (a *App) CreateCategory(c *gin.Context) {
 	var categoryBody models.CategoryCreateBody
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -40,7 +40,7 @@ func (a *App) CreateCategory(c *gin.Context) {
 		return
 	}
 
-	if !auth.CheckAdmin(token) {
+	if !middlewares.CheckAdmin(token) {
 		c.JSON(http.StatusUnauthorized,
 			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
 		)
@@ -65,7 +65,7 @@ func (a *App) CreateCategory(c *gin.Context) {
 	}
 
 	categoryCode := utils.LongCodeGen()
-	userEmail := auth.JwtParse(token).Email
+	userEmail := middlewares.JwtParse(token).Email
 	var foundUser []models.User
 	a.db.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUser)
 	if len(foundUser) <= 0 {
@@ -117,12 +117,12 @@ func (a *App) CreateCategory(c *gin.Context) {
 // @Router /admin/categories/info [get]
 func (a *App) CategoryInfoById(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
-	if !auth.CheckAdmin(token) {
+	if !middlewares.CheckAdmin(token) {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
@@ -179,12 +179,12 @@ func (a *App) CategoryInfoById(c *gin.Context) {
 // @Router /admin/categories/list [get]
 func (a *App) GetCategoryList(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
-	if !auth.CheckAdmin(token) {
+	if !middlewares.CheckAdmin(token) {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
@@ -244,12 +244,12 @@ func (a *App) GetCategoryList(c *gin.Context) {
 // @Router /admin/categories/update [patch]
 func (a *App) CategoryUpdate(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
-	if !auth.CheckAdmin(token) {
+	if !middlewares.CheckAdmin(token) {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
@@ -332,12 +332,12 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 // @Router /admin/categories/delete [delete]
 func (a *App) DeleteCategory(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
-	if !auth.CheckAdmin(token) {
+	if !middlewares.CheckAdmin(token) {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}

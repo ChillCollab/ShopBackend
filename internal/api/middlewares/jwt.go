@@ -1,4 +1,4 @@
-package auth
+package middlewares
 
 import (
 	"fmt"
@@ -6,10 +6,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"gorm.io/gorm"
-
-	"backend/models"
 
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
@@ -130,31 +126,31 @@ func GetAuth(c *gin.Context) string {
 	return cleanedToken
 }
 
-func CheckAuth(c *gin.Context, checkExpiried bool, db *gorm.DB) string {
+func CheckAuth(c *gin.Context, checkExpired bool) string {
 	token := strings.Replace(c.GetHeader("Authorization"), "Bearer ", "", 1)
 	if token == "" {
 		return ""
 	}
 
-	var dbToken []models.AuthToken
-	db.Model(models.AuthToken{}).Where("access_token = ?", token).Find(&dbToken)
-	if len(dbToken) <= 0 {
-		return ""
-	}
-	if checkExpiried {
-		if expired := CheckTokenExpiration(token); expired {
-			return ""
-		}
-	}
-	userEmail := JwtParse(token).Email
-	if userEmail == "" {
-		panic("incorrect user email")
-	}
-	var foundUsers []models.User
-	db.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUsers)
-	if len(foundUsers) <= 0 {
-		return ""
-	}
+	//var dbToken []models.AuthToken
+	//db.Model(models.AuthToken{}).Where("access_token = ?", token).Find(&dbToken)
+	//if len(dbToken) <= 0 {
+	//	return ""
+	//}
+	//if checkExpired {
+	//	if expired := CheckTokenExpiration(token); expired {
+	//		return ""
+	//	}
+	//}
+	//userEmail := JwtParse(token).Email
+	//if userEmail == "" {
+	//	panic("incorrect user email")
+	//}
+	//var foundUsers []models.User
+	//db.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUsers)
+	//if len(foundUsers) <= 0 {
+	//	return ""
+	//}
 
 	return token
 }

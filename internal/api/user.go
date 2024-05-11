@@ -1,11 +1,11 @@
 package api
 
 import (
+	"backend/internal/api/middlewares"
 	"encoding/json"
 	"net/http"
 	"strconv"
 
-	"backend/internal/api/middlewares/auth"
 	"backend/internal/api/middlewares/images"
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
@@ -29,13 +29,13 @@ import (
 // @Router /user/info [get]
 func (a *App) Info(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 
-	email := auth.JwtParse(token).Email
+	email := middlewares.JwtParse(token).Email
 	var users []models.User
 	result := a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
 	if result.Error != nil {
@@ -107,13 +107,13 @@ func (a *App) ChangePassword(c *gin.Context) {
 	}
 
 	// Сначало проверка авторизации, потом проверка полученных данных.
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(401, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 
-	email := auth.JwtParse(token).Email
+	email := middlewares.JwtParse(token).Email
 	var users []models.User
 	var userPass []models.UserPass
 	// Проверка ошибок выполнения
@@ -184,7 +184,7 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 		return
 	}
 
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -193,7 +193,7 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 		return
 	}
 
-	email := auth.JwtParse(token).Email
+	email := middlewares.JwtParse(token).Email
 
 	var users []models.User
 	a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
@@ -269,13 +269,13 @@ func (a *App) ChangeEmail(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorCodes.ParsingError))
 		return
 	}
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 
-	email := auth.JwtParse(token).Email
+	email := middlewares.JwtParse(token).Email
 
 	var users []models.User
 
@@ -351,7 +351,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		return
 	}
 
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -389,7 +389,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	a.db.Model(models.User{}).Where("id = ?", foundCode[0].UserID).Update("updated", dataBase.TimeNow())
 	a.db.Model(models.EmailChange{}).Where("code = ?", code).Delete(&foundCode)
 
-	access, refresh, err := auth.GenerateJWT(auth.TokenData{
+	access, refresh, err := middlewares.GenerateJWT(middlewares.TokenData{
 		Authorized: true,
 		Email:      foundCode[0].Email,
 		Role:       userRole[0].Role,

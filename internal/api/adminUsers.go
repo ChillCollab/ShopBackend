@@ -1,12 +1,12 @@
 package api
 
 import (
+	"backend/internal/api/middlewares"
 	"encoding/json"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"backend/internal/api/middlewares/auth"
 	"backend/internal/api/middlewares/images"
 	userMiddlewares "backend/internal/api/middlewares/user"
 	"backend/internal/errorCodes"
@@ -30,7 +30,7 @@ import (
 // @Router /admin/users/list [get]
 func (a *App) Users(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -39,7 +39,7 @@ func (a *App) Users(c *gin.Context) {
 		return
 	}
 
-	if !auth.CheckAdmin(token) {
+	if !middlewares.CheckAdmin(token) {
 		c.JSON(
 			http.StatusUnauthorized,
 			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
@@ -83,7 +83,7 @@ func (a *App) Users(c *gin.Context) {
 func (a *App) ChangeUser(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user models.ChangeUser
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -92,7 +92,7 @@ func (a *App) ChangeUser(c *gin.Context) {
 		return
 	}
 
-	if !auth.CheckAdmin(token) {
+	if !middlewares.CheckAdmin(token) {
 		c.JSON(
 			http.StatusUnauthorized,
 			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
@@ -225,7 +225,7 @@ func (a *App) ChangeUser(c *gin.Context) {
 // @Router /admin/users/delete [delete]
 func (a *App) DeleteUsers(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -234,7 +234,7 @@ func (a *App) DeleteUsers(c *gin.Context) {
 		return
 	}
 
-	if !auth.CheckAdmin(token) {
+	if !middlewares.CheckAdmin(token) {
 		c.JSON(
 			http.StatusUnauthorized,
 			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),

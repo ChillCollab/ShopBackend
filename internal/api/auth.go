@@ -1,6 +1,7 @@
 package api
 
 import (
+	"backend/internal/api/middlewares"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -8,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"backend/internal/api/middlewares/auth"
 	"backend/internal/dataBase"
 	errorcodes "backend/internal/errorCodes"
 	"backend/models"
@@ -88,7 +88,7 @@ func (a *App) Login(c *gin.Context) {
 		},
 	}
 
-	accessToken, refreshToken, err := auth.GenerateJWT(auth.TokenData{
+	accessToken, refreshToken, err := middlewares.GenerateJWT(middlewares.TokenData{
 		Authorized: true,
 		Email:      userInfo.Email,
 		Role:       userInfo.RoleId,
@@ -98,7 +98,7 @@ func (a *App) Login(c *gin.Context) {
 		return
 	}
 
-	alive, err := auth.CheckTokenRemaining(accessToken)
+	alive, err := middlewares.CheckTokenRemaining(accessToken)
 	if err != nil {
 		a.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, err)
@@ -410,12 +410,12 @@ func (a *App) Activate(c *gin.Context) {
 // @Router /auth/refresh [post]
 func (a *App) Refresh(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.CheckAuth(c, false, a.db.DB)
+	token := middlewares.CheckAuth(c, false)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
-	data := auth.JwtParse(token)
+	data := middlewares.JwtParse(token)
 	if data.Email == nil {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
@@ -445,7 +445,7 @@ func (a *App) Refresh(c *gin.Context) {
 		return
 	}
 
-	if auth.CheckTokenExpiration(dataToken.Token) {
+	if middlewares.CheckTokenExpiration(dataToken.Token) {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
@@ -456,7 +456,7 @@ func (a *App) Refresh(c *gin.Context) {
 	}
 
 	a.db.Model(models.AuthToken{}).Where("user_id = ?", strconv.Itoa(int(user.ID))).Delete(foundToken)
-	access, refresh, err := auth.GenerateJWT(auth.TokenData{
+	access, refresh, err := middlewares.GenerateJWT(middlewares.TokenData{
 		Authorized: true,
 		Email:      user.Email,
 	})
@@ -486,7 +486,7 @@ func (a *App) Refresh(c *gin.Context) {
 // @Router /auth/logout [post]
 func (a *App) Logout(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := auth.GetAuth(c)
+	token := middlewares.GetAuth(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return

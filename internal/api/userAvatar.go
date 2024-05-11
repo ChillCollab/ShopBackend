@@ -1,13 +1,13 @@
 package api
 
 import (
+	"backend/internal/api/middlewares"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"backend/internal/api/middlewares/auth"
 	"backend/internal/errorCodes"
 	"backend/models"
 	"backend/models/language"
@@ -32,7 +32,7 @@ import (
 func (a *App) UploadAvatar(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	token := auth.CheckAuth(c, true, a.db.DB)
+	token := middlewares.CheckAuth(c, true)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -41,7 +41,7 @@ func (a *App) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	email := auth.JwtParse(token).Email
+	email := middlewares.JwtParse(token).Email
 	var users []models.User
 	result := a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
 	if result.Error != nil {
@@ -166,7 +166,12 @@ func (a *App) GetAvatar(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
 		return
 	}
-	defer fileData.Close()
+	defer func(fileData *os.File) {
+		err := fileData.Close()
+		if err != nil {
+
+		}
+	}(fileData)
 	// Read the first 512 bytes of the file to determine its content type
 	fileHeader := make([]byte, 512)
 	_, err = fileData.Read(fileHeader)
