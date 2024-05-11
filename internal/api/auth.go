@@ -310,19 +310,91 @@ func (a *App) Activate(c *gin.Context) {
 		return
 	}
 
-	res, err := auth.ActivateHandler(user, lang)
-	if err != nil {
-		c.JSON(res.Code, res.Object)
+	if user.Code == "" {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_activation_code"), errorcodes.IncorrectActivationCode))
+		return
+	}
+	if user.Password == "" {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_null"), errorcodes.NameOfSurnameIncorrect))
+		return
+	}
+	digit, symbols := utils.PasswordChecker(user.Password)
+	if !digit || !symbols {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
-	usr, res, err := auth.ActivateByRegToken(user, lang, a.db.DB)
-	if err != nil {
-		c.JSON(res.Code, res.Object)
+	var activate models.RegToken
+
+	tx := a.db.Begin()
+	codesRes := tx.Model(&models.RegToken{}).Where("code = ?", user.Code).First(&activate)
+	if codesRes.RowsAffected <= 0 {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "activation_code_not_found"), errorcodes.ActivationCodeNotFound))
+		return
+	}
+	// Check if token is expired
+	if activate.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		if deleteCode := tx.Model(&models.RegToken{}).Delete("code = ?", activate.Code); deleteCode.Error != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+			return
+		}
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
 		return
 	}
 
-	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "account")+usr.Email+" "+language.Language(lang, "success_activate"), 0))
+	var foundUsers models.User
+	// Check if user exist
+	tx.Model(models.User{}).Where("id = ?", uint(activate.UserId)).First(&foundUsers)
+	if foundUsers.ID <= 0 {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorcodes.UserNotFound))
+		return
+	}
+	// Check if user is already registered
+	if foundUsers.Active {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
+		return
+	}
+
+	// Check if user has password
+	var checkPass models.UserPass
+	tx.Model(&models.UserPass{}).Where("user_id = ?", activate.UserId).First(&checkPass)
+	if checkPass.Pass != "" {
+		if deletePass := tx.Model(&models.UserPass{}).Delete("user_id = ?", activate.UserId); deletePass.Error != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+			return
+		}
+	}
+	// Delete activation code
+	if deleteCode := tx.Model(&models.RegToken{}).Where("code = ?", activate.Code).Delete(activate); deleteCode.Error != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
+	// Create new password
+	if createPass := tx.Model(&models.UserPass{}).Create(models.UserPass{
+		UserId:  uint(activate.UserId),
+		Pass:    utils.Hash(user.Password),
+		Updated: dataBase.TimeNow(),
+	}); createPass.Error != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
+	// Activate user
+	if update := tx.Model(&models.User{}).Where("id = ?", activate.UserId).Updates(models.User{
+		Active:  true,
+		Updated: dataBase.TimeNow(),
+	}); update.Error != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
+
+	tx.Commit()
+
+	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "account")+foundUsers.Email+" "+language.Language(lang, "success_activate"), 0))
 }
 
 // @Summary Get new access token
