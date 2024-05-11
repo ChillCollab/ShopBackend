@@ -200,6 +200,8 @@ func (a *App) Register(c *gin.Context) {
 	})
 }
 
+//hi
+
 // @Summary Send register email
 // @Description Endpoint to send register email to submit registration
 // @Tags Auth
