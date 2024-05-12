@@ -234,7 +234,7 @@ func (a *App) Send(c *gin.Context) {
 
 	var checkUser []models.RegToken
 
-	a.db.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).Find(&checkUser)
+	a.db.Model(&models.RegToken{}).Where("user_id = ? AND type = ?", foundUser.ID, 0).Find(&checkUser)
 	if len(checkUser) > 1 {
 		del := a.db.Model(&checkUser).Delete(checkUser)
 		if del.Error != nil {
@@ -354,28 +354,20 @@ func (a *App) Activate(c *gin.Context) {
 		return
 	}
 
-	// Check if user has password
-	var checkPass models.UserPass
-	tx.Model(&models.UserPass{}).Where("user_id = ?", activate.UserId).First(&checkPass)
-	if checkPass.Pass != "" {
-		if deletePass := tx.Model(&models.UserPass{}).Delete("user_id = ?", activate.UserId); deletePass.Error != nil {
-			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
-			return
-		}
-	}
 	// Delete activation code
 	if deleteCode := tx.Model(&models.RegToken{}).Where("code = ?", activate.Code).Delete(activate); deleteCode.Error != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
 	}
-	// Create new password
-	if createPass := tx.Model(&models.UserPass{}).Create(models.UserPass{
-		UserId:  uint(activate.UserId),
-		Pass:    utils.Hash(user.Password),
-		Updated: dataBase.TimeNow(),
-	}); createPass.Error != nil {
+
+	if foundUsers.Pass != "" {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
+		return
+	}
+	// Create (UPDATE) new password
+	if updatePass := tx.Model(&models.User{}).Where("id = ?", foundUsers.ID).Update("pass", utils.Hash(user.Password)); updatePass.Error != nil {
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
@@ -543,47 +535,53 @@ func (a *App) CheckRegistrationCode(c *gin.Context) {
 	lang := language.LangValue(c)
 	var code models.RegistrationCodeBody
 
-	rawData, err := c.GetRawData()
-	if err != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
-		return
-	}
-	if err := json.Unmarshal(rawData, &code); err != nil {
+	if err := c.ShouldBindJSON(&code); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
 
-	var foundCodes []models.RegToken
+	var foundCodes models.RegToken
+	if err := a.db.Model(models.RegToken{}).Where("code = ? AND type = ?", code.Code, 1).First(&foundCodes).Error; err != nil {
+		a.logger.Error(err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
+	if foundCodes.Code == "" {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
+		return
+	}
 
-	a.db.Model(models.RegToken{}).Where("code = ?", code.Code).Find(&foundCodes)
-	if len(foundCodes) <= 0 || foundCodes[0].Type != 0 {
+	var user models.User
+	if err := a.db.Model(models.User{}).Where("id = ?", uint(foundCodes.UserId)).First(&user); err.Error != nil {
+		a.logger.Error(err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
+	if user.Login == "" {
 		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
 		return
 	}
 
-	var user []models.User
-	a.db.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&user)
-	if len(user) <= 0 {
-		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
-		return
-	}
-
-	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
-		a.db.Model(&models.RegToken{}).Where("code = ?", foundCodes[0]).Delete(foundCodes[0])
+	if foundCodes.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		if err := a.db.Model(&models.RegToken{}).Where("code = ?", foundCodes).Delete(foundCodes); err.Error != nil {
+			a.logger.Error(err)
+			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+			return
+		}
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
 		return
 	}
 
-	if user[0].Active {
+	if user.Active {
 		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
 		return
 	}
 
 	c.JSON(http.StatusOK, models.CodeCheckResponse{
-		ID:      user[0].ID,
-		Name:    user[0].Name,
-		Surname: user[0].Surname,
-		Email:   user[0].Email,
+		ID:      user.ID,
+		Name:    user.Name,
+		Surname: user.Surname,
+		Email:   user.Email,
 	})
 }
 
@@ -602,22 +600,18 @@ func (a *App) Recovery(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user models.SendMail
 
-	rawData, err := c.GetRawData()
+	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
-	if err := json.Unmarshal(rawData, &user); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Parse error",
-		})
-		return
-	}
+
 	if user.Email == "" {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "email_empty"), errorcodes.EmptyEmail))
 		return
 	}
 
+	// Check if user exist
 	var foundUser models.User
 	a.db.Model(&models.User{}).Where("email = ?", user.Email).First(&foundUser)
 	if foundUser.Email == "" {
@@ -626,8 +620,8 @@ func (a *App) Recovery(c *gin.Context) {
 	}
 
 	var checkUser models.RegToken
-
-	a.db.Model(&models.RegToken{}).Where("user_id = ?", foundUser.ID).First(&checkUser)
+	// Check if user already sent email
+	a.db.Model(&models.RegToken{}).Where("user_id = ? AND type = ?", foundUser.ID, 1).First(&checkUser)
 	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 		a.db.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
 	} else {
@@ -637,27 +631,32 @@ func (a *App) Recovery(c *gin.Context) {
 
 	code := utils.CodeGen()
 
-	if utils.Send(
-		foundUser.Email,
-		"Admin Panel password recovery!", "Your link for countinue is:  "+os.Getenv("DOMAIN")+"/acc/activate/"+code+
-			"\n\nEmail: "+user.Email+
-			"\nLogin: "+foundUser.Name+
-			"\nName: "+foundUser.Name+
-			"\nSurname: "+foundUser.Surname+
-			"\nCreated: "+foundUser.Created,
-		a.db.DB) {
-		a.db.Model(&models.RegToken{}).Create(models.RegToken{
-			UserId:  int(foundUser.ID),
-			Type:    1,
-			Code:    code,
-			Created: dataBase.TimeNow(),
-		})
-		c.JSON(http.StatusOK, models.ResponseMsg(true, "Email sent to "+foundUser.Email, 0))
-		return
-	} else {
-		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "email_error"), errorcodes.EmailSendError))
+	// Create new code in database
+	if err := a.db.Model(&models.RegToken{}).Create(models.RegToken{
+		UserId:  int(foundUser.ID),
+		Type:    1,
+		Code:    code,
+		Created: dataBase.TimeNow(),
+	}); err.Error != nil {
+		a.logger.Error(err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
 	}
+
+	c.JSON(http.StatusOK, models.ResponseMsg(true, "Email sent to "+foundUser.Email, 0))
+
+	// Send email
+	go func(code string) {
+		utils.Send(
+			foundUser.Email,
+			"Admin Panel password recovery!", "Your link for continue is:  "+os.Getenv("DOMAIN")+"/acc/activate/"+code+
+				"\n\nEmail: "+user.Email+
+				"\nLogin: "+foundUser.Name+
+				"\nName: "+foundUser.Name+
+				"\nSurname: "+foundUser.Surname+
+				"\nCreated: "+foundUser.Created,
+			a.db.DB)
+	}(code)
 }
 
 // @Summary Recovery submit
@@ -676,66 +675,72 @@ func (a *App) RecoverySubmit(c *gin.Context) {
 	lang := language.LangValue(c)
 	var recoveryBody models.RecoverySubmit
 
-	rawData, err := c.GetRawData()
+	err := c.ShouldBindJSON(&recoveryBody)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
 	}
-
-	if err := json.Unmarshal(rawData, &recoveryBody); err != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
-		return
-	}
-
 	if recoveryBody.Code == "" || recoveryBody.Password == "" {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "code_password_empty"), errorcodes.CodeOrPasswordEmpty))
 		return
 	}
-
 	digit, symbols := utils.PasswordChecker(recoveryBody.Password)
 	if !digit || !symbols {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
-	var foundCodes []models.RegToken
-	a.db.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).Find(&foundCodes)
-	if len(foundCodes) <= 0 || len(foundCodes) > 1 || foundCodes[0].Type != 1 {
+	tx := a.db.Begin()
+
+	// Find of code
+	var foundCodes models.RegToken
+	err = tx.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).First(&foundCodes).Error
+	if err != nil {
+		tx.Rollback()
+		a.logger.Error(err)
+	}
+	if foundCodes.Code == "" {
 		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
 		return
 	}
 
-	var foundUser []models.User
-	a.db.Model(models.User{}).Where("id = ?", uint(foundCodes[0].UserId)).Find(&foundUser)
-	if len(foundUser) <= 0 || len(foundUser) > 1 {
-		a.db.Model(models.RegToken{}).Delete(foundCodes)
+	// Find user by code
+	var foundUser models.User
+	err = tx.Model(models.User{}).Where("id = ?", uint(foundCodes.UserId)).First(&foundUser).Error
+	if err != nil {
+		tx.Rollback()
 		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
 		return
 	}
 
-	if foundCodes[0].Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
-		a.db.Model(&models.RegToken{}).Where("code = ?", foundCodes[0].Code).Delete(foundCodes[0])
+	// Check if code is expired
+	if foundCodes.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		tx.Model(&models.RegToken{}).Where("code = ?", foundCodes.Code).Delete(foundCodes)
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "recovery_code_expired"), errorcodes.RecoveryCodeExpired))
 		return
 	}
 
+	// Hash password
 	hashPassword := utils.Hash(recoveryBody.Password)
 
-	var foundPass []models.UserPass
-	a.db.Model(models.UserPass{}).Where("user_id = ?", foundUser[0].ID).Find(&foundPass)
-	if len(foundPass) <= 0 {
-		a.db.Model(models.UserPass{}).Create(models.UserPass{
-			UserId:  foundUser[0].ID,
-			Pass:    hashPassword,
-			Updated: dataBase.TimeNow(),
-		})
-	} else if len(foundPass) == 1 {
-		a.db.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("pass", hashPassword)
-		a.db.Model(&models.UserPass{}).Where("user_id = ?", foundUser[0].ID).UpdateColumn("updated", dataBase.TimeNow())
-	} else {
-		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
+	// Delete code
+	err = tx.Model(&models.RegToken{}).Where("code = ?", foundCodes.Code).Delete(foundCodes).Error
+	if err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
 	}
+
+	// Update password
+	err = tx.Model(&models.User{}).Where("id = ?", foundUser.ID).Update("pass", hashPassword).Error
+	if err != nil {
+		tx.Rollback()
+		a.logger.Error(err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
+
+	tx.Commit()
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "password_reseted"), 0))
 }

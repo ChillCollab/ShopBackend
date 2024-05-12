@@ -54,7 +54,7 @@ type UserLogin struct {
 }
 
 type RegToken struct {
-	UserId  int    `gorm:"unique" json:"user_id"`
+	UserId  int    `json:"user_id"`
 	Type    int    `json:"type"`
 	Code    string `json:"code"`
 	Created string `json:"created"`
