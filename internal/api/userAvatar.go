@@ -32,7 +32,7 @@ import (
 func (a *App) UploadAvatar(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,

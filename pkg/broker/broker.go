@@ -32,8 +32,8 @@ func RedisInit() (red *Client, errors error) {
 	return &Client{Client: client}, nil
 }
 
-func (c *Client) RedisAddToArray(models interface{}) error {
-	dataJSON, err := c.Client.Get("auth_tokens").Bytes()
+func (c *Client) RedisAddToArray(tableName string, models interface{}) error {
+	dataJSON, err := c.Client.Get(tableName).Bytes()
 	if err != nil && err != redis.Nil {
 		return err
 	}

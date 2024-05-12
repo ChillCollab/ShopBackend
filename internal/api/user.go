@@ -29,7 +29,7 @@ import (
 // @Router /user/info [get]
 func (a *App) Info(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -107,7 +107,7 @@ func (a *App) ChangePassword(c *gin.Context) {
 	}
 
 	// Сначало проверка авторизации, потом проверка полученных данных.
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(401, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -184,7 +184,7 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 		return
 	}
 
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -269,7 +269,7 @@ func (a *App) ChangeEmail(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorCodes.ParsingError))
 		return
 	}
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -351,7 +351,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		return
 	}
 
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -399,12 +399,12 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		return
 	}
 
-	tokens := models.AuthToken{
-		UserId:       users[0].ID,
+	tokens := models.RejectedToken{
+		//UserId:       users[0].ID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 	}
-	if err := a.db.Model(models.AuthToken{}).Where("user_id = ?", users[0].ID).Updates(tokens); err.Error != nil {
+	if err := a.db.Model(models.RejectedToken{}).Where("user_id = ?", users[0].ID).Updates(tokens); err.Error != nil {
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "token_update_error"), errorCodes.TokenUpdateError))
 		return
 	}

@@ -31,7 +31,7 @@ import (
 func (a *App) CreateCategory(c *gin.Context) {
 	var categoryBody models.CategoryCreateBody
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -117,7 +117,7 @@ func (a *App) CreateCategory(c *gin.Context) {
 // @Router /admin/categories/info [get]
 func (a *App) CategoryInfoById(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -179,7 +179,7 @@ func (a *App) CategoryInfoById(c *gin.Context) {
 // @Router /admin/categories/list [get]
 func (a *App) GetCategoryList(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -244,7 +244,7 @@ func (a *App) GetCategoryList(c *gin.Context) {
 // @Router /admin/categories/update [patch]
 func (a *App) CategoryUpdate(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -332,7 +332,7 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 // @Router /admin/categories/delete [delete]
 func (a *App) DeleteCategory(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return

@@ -16,7 +16,7 @@ type TokenData struct {
 	Email      string
 	Role       int
 }
-type jwtData struct {
+type JwtData struct {
 	Authorized interface{} `json:"authorized"`
 	Email      interface{} `json:"email"`
 	Role       interface{} `json:"role"`
@@ -63,26 +63,26 @@ func CheckTokenExpiration(tokenString string) bool {
 	return false
 }
 
-func JwtParse(jw string) jwtData {
+func JwtParse(jw string) JwtData {
 	token, err := jwt.Parse(jw, func(token *jwt.Token) (interface{}, error) {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
-		return jwtData{}
+		return JwtData{}
 	}
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		auth := claims["authorized"]
 		email := claims["email"]
 		exp := claims["expired"]
 		role := claims["role"]
-		return jwtData{
+		return JwtData{
 			Authorized: auth,
 			Email:      email,
 			Role:       role,
 			Expired:    exp,
 		}
 	}
-	return jwtData{}
+	return JwtData{}
 }
 
 func CheckAdmin(jw string) bool {
@@ -126,31 +126,10 @@ func GetAuth(c *gin.Context) string {
 	return cleanedToken
 }
 
-func CheckAuth(c *gin.Context, checkExpired bool) string {
+func GetToken(c *gin.Context) string {
 	token := strings.Replace(c.GetHeader("Authorization"), "Bearer ", "", 1)
 	if token == "" {
 		return ""
 	}
-
-	//var dbToken []models.AuthToken
-	//db.Model(models.AuthToken{}).Where("access_token = ?", token).Find(&dbToken)
-	//if len(dbToken) <= 0 {
-	//	return ""
-	//}
-	//if checkExpired {
-	//	if expired := CheckTokenExpiration(token); expired {
-	//		return ""
-	//	}
-	//}
-	//userEmail := JwtParse(token).Email
-	//if userEmail == "" {
-	//	panic("incorrect user email")
-	//}
-	//var foundUsers []models.User
-	//db.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUsers)
-	//if len(foundUsers) <= 0 {
-	//	return ""
-	//}
-
 	return token
 }

@@ -60,12 +60,6 @@ type RegToken struct {
 	Created string `json:"created"`
 }
 
-type AuthToken struct {
-	UserId       uint   `gorm:"unique" json:"user_id"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 type RejectedToken struct {
 	UserId       uint   `gorm:"unique" json:"user_id"`
 	AccessToken  string `gorm:"unique" json:"access_token"`

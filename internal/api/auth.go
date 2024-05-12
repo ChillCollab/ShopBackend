@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"backend/internal/dataBase"
@@ -410,16 +409,7 @@ func (a *App) Activate(c *gin.Context) {
 // @Router /auth/refresh [post]
 func (a *App) Refresh(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, false)
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
-		return
-	}
-	data := middlewares.JwtParse(token)
-	if data.Email == nil {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
-		return
-	}
+	token := middlewares.GetToken(c)
 	var dataToken body.Refresh
 	if err := c.ShouldBindJSON(&dataToken); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
@@ -427,50 +417,38 @@ func (a *App) Refresh(c *gin.Context) {
 	}
 
 	var user models.User
-	a.db.Model(models.User{}).Where("email = ?", data.Email).First(&user)
+	a.db.Model(models.User{}).Where("email = ?", middlewares.JwtParse(token).Email).First(&user)
 	if user.ID == 0 {
+		fmt.Println("kek")
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
-
-	var foundToken models.AuthToken
-	a.db.Model(models.AuthToken{}).Where("access_token = ?", token).First(&foundToken)
-	if foundToken.AccessToken == "" || foundToken.RefreshToken == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+	rejected := models.RejectedToken{
+		AccessToken:  token,
+		RefreshToken: dataToken.Token,
+		UserId:       user.ID,
+	}
+	err := a.broker.RedisAddToArray(dataBase.RedisAuthTokens, rejected)
+	if err != nil {
+		a.logger.Error(err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
 	}
-
-	if uint(foundToken.UserId) != user.ID {
-		a.logger.Error("Check user access tokens. Found id != userID from jwt")
-		return
-	}
-
-	if middlewares.CheckTokenExpiration(dataToken.Token) {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
-		return
-	}
-
-	if dataToken.Token != foundToken.RefreshToken {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
-		return
-	}
-
-	a.db.Model(models.AuthToken{}).Where("user_id = ?", strconv.Itoa(int(user.ID))).Delete(foundToken)
 	access, refresh, err := middlewares.GenerateJWT(middlewares.TokenData{
 		Authorized: true,
 		Email:      user.Email,
 	})
-	if err != nil || refresh == "" || access == "" {
-		panic(err)
+	if err != nil {
+		a.logger.Error(err)
 	}
 
-	newTokens := models.AuthToken{
+	newTokens := models.RejectedToken{
 		UserId:       user.ID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 	}
 
-	a.db.Model(models.AuthToken{}).Create(newTokens)
+	a.db.Model(models.RejectedToken{}).Create(newTokens)
 	c.JSON(http.StatusOK, newTokens)
 }
 
@@ -488,21 +466,24 @@ func (a *App) Logout(c *gin.Context) {
 	lang := language.LangValue(c)
 	token := middlewares.GetAuth(c)
 	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "successfuly_logout"), 0))
 		return
 	}
-	var foundToken []models.AuthToken
-	a.db.Model(models.AuthToken{}).Where("access_token = ?", token).Find(&foundToken)
-	if len(foundToken) == 0 {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
-		return
-	}
-	if len(foundToken) > 1 {
-		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
+	if middlewares.JwtParse(token).Email == nil {
+		c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "successfuly_logout"), 0))
 		return
 	}
 
-	a.db.Model(models.AuthToken{}).Where("access_token = ?", foundToken[0].AccessToken).Delete(&foundToken)
+	if err := a.broker.RedisAddToArray(dataBase.RedisAuthTokens, models.RejectedToken{
+		AccessToken:  token,
+		RefreshToken: "",
+		UserId:       0,
+	}); err != nil {
+		a.logger.Error(err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
+
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "successfuly_logout"), 0))
 }
 

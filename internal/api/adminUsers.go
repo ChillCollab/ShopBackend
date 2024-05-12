@@ -30,7 +30,7 @@ import (
 // @Router /admin/users/list [get]
 func (a *App) Users(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -83,7 +83,7 @@ func (a *App) Users(c *gin.Context) {
 func (a *App) ChangeUser(c *gin.Context) {
 	lang := language.LangValue(c)
 	var user models.ChangeUser
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -225,7 +225,7 @@ func (a *App) ChangeUser(c *gin.Context) {
 // @Router /admin/users/delete [delete]
 func (a *App) DeleteUsers(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.CheckAuth(c, true)
+	token := middlewares.GetToken(c)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
