@@ -3,7 +3,6 @@ package api
 import (
 	"backend/internal/api/middlewares"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -416,17 +415,53 @@ func (a *App) Refresh(c *gin.Context) {
 		return
 	}
 
+	array, errGet := a.broker.RedisGetArray(dataBase.RedisAuthTokens)
+	if errGet != nil {
+		return
+	}
+	var exist bool
+	for _, item := range array {
+		var tok models.RejectedToken
+		er, errMarshal := json.Marshal(item)
+		if errMarshal != nil {
+			continue
+		}
+		errUnmarshal := json.Unmarshal(er, &tok)
+		if errUnmarshal != nil {
+			continue
+		}
+		if tok.RefreshToken == dataToken.Token {
+			exist = true
+			break
+		}
+	}
+	if exist {
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		return
+	}
+	parsedRefresh := middlewares.JwtParse(dataToken.Token)
+	if middlewares.CheckTokenExpiration(dataToken.Token) {
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		return
+	}
+	if parsedRefresh.Email == nil {
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		return
+	}
+	if parsedRefresh.Email != middlewares.JwtParse(token).Email {
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
+		return
+	}
+
 	var user models.User
 	a.db.Model(models.User{}).Where("email = ?", middlewares.JwtParse(token).Email).First(&user)
 	if user.ID == 0 {
-		fmt.Println("kek")
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized))
 		return
 	}
 	rejected := models.RejectedToken{
 		AccessToken:  token,
 		RefreshToken: dataToken.Token,
-		UserId:       user.ID,
 	}
 	err := a.broker.RedisAddToArray(dataBase.RedisAuthTokens, rejected)
 	if err != nil {
@@ -442,13 +477,18 @@ func (a *App) Refresh(c *gin.Context) {
 		a.logger.Error(err)
 	}
 
-	newTokens := models.RejectedToken{
-		UserId:       user.ID,
+	newTokens := responses.Refresh{
 		AccessToken:  access,
 		RefreshToken: refresh,
+		UserId:       int(user.ID),
 	}
 
-	a.db.Model(models.RejectedToken{}).Create(newTokens)
+	err = a.db.Model(models.RejectedToken{}).Create(newTokens).Error
+	if err != nil {
+		a.logger.Error(err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
 	c.JSON(http.StatusOK, newTokens)
 }
 
@@ -477,7 +517,6 @@ func (a *App) Logout(c *gin.Context) {
 	if err := a.broker.RedisAddToArray(dataBase.RedisAuthTokens, models.RejectedToken{
 		AccessToken:  token,
 		RefreshToken: "",
-		UserId:       0,
 	}); err != nil {
 		a.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
@@ -681,11 +720,9 @@ func (a *App) RecoverySubmit(c *gin.Context) {
 	}
 
 	hashPassword := utils.Hash(recoveryBody.Password)
-	fmt.Println(len(foundUser))
 
 	var foundPass []models.UserPass
 	a.db.Model(models.UserPass{}).Where("user_id = ?", foundUser[0].ID).Find(&foundPass)
-	fmt.Print(len(foundPass))
 	if len(foundPass) <= 0 {
 		a.db.Model(models.UserPass{}).Create(models.UserPass{
 			UserId:  foundUser[0].ID,

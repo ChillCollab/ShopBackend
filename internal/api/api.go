@@ -67,7 +67,7 @@ func (a *App) routes() {
 		auth := route.Group("/auth")
 		{
 			auth.POST("/login", a.Login)
-			auth.POST("/refresh", client.IsAuthorized, a.Refresh)
+			auth.POST("/refresh", client.IsAuthorized, middlewares.IsAdmin, a.Refresh)
 			auth.POST("/register", a.Register)
 			auth.POST("/activate/send", a.Send) // domen email
 			auth.POST("/activate", a.Activate)
@@ -78,15 +78,15 @@ func (a *App) routes() {
 		}
 		user := route.Group("/user")
 		{
-			user.GET("/info", a.Info)
-			user.POST("/changepass", a.ChangePassword)
-			user.PATCH("/change", a.ChangeOwnData)
-			user.POST("/change/email", a.ChangeEmail) // domen email
-			user.PATCH("/change/email/submit", a.ChangeEmailComplete)
-			user.GET("/avatar/:uuid", a.GetAvatar)
+			user.GET("/info", client.IsAuthorized, a.Info)
+			user.POST("/changepass", client.IsAuthorized, a.ChangePassword)
+			user.PATCH("/change", client.IsAuthorized, a.ChangeOwnData)
+			user.POST("/change/email", client.IsAuthorized, a.ChangeEmail) // domen email
+			user.PATCH("/change/email/submit", client.IsAuthorized, a.ChangeEmailComplete)
+			user.GET("/avatar/:uuid", client.IsAuthorized, a.GetAvatar)
 			upload := user.Group("/upload")
 			{
-				upload.POST("/avatar", a.UploadAvatar)
+				upload.POST("/avatar", client.IsAuthorized, a.UploadAvatar)
 			}
 		}
 
@@ -94,17 +94,17 @@ func (a *App) routes() {
 		{
 			users := admin.Group("/users")
 			{
-				users.GET("/list", a.Users)
-				users.POST("/change", a.ChangeUser)
-				users.DELETE("/delete", a.DeleteUsers)
+				users.GET("/list", client.IsAuthorized, a.Users)
+				users.POST("/change", client.IsAuthorized, a.ChangeUser)
+				users.DELETE("/delete", client.IsAuthorized, a.DeleteUsers)
 			}
 			categories := admin.Group("/categories")
 			{
-				categories.POST("/create", a.CreateCategory)
-				categories.GET("/info", a.CategoryInfoById)
-				categories.GET("/list", a.GetCategoryList)
-				categories.PATCH("/update", a.CategoryUpdate)
-				categories.DELETE("/delete", a.DeleteCategory)
+				categories.POST("/create", client.IsAuthorized, a.CreateCategory)
+				categories.GET("/info", client.IsAuthorized, a.CategoryInfoById)
+				categories.GET("/list", client.IsAuthorized, a.GetCategoryList)
+				categories.PATCH("/update", client.IsAuthorized, a.CategoryUpdate)
+				categories.DELETE("/delete", client.IsAuthorized, a.DeleteCategory)
 			}
 		}
 	}

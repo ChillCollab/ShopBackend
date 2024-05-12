@@ -61,7 +61,6 @@ type RegToken struct {
 }
 
 type RejectedToken struct {
-	UserId       uint   `gorm:"unique" json:"user_id"`
 	AccessToken  string `gorm:"unique" json:"access_token"`
 	RefreshToken string `gorm:"unique" json:"refresh_token"`
 }

@@ -20,24 +20,20 @@ func (br *Broker) IsAuthorized(c *gin.Context) {
 	lang := language.LangValue(c)
 	token := GetToken(c)
 	if token == "" {
-		fmt.Println(1)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 	if JwtParse(token).Email == nil {
-		fmt.Println(2)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 	if CheckTokenExpiration(token) {
-		fmt.Println(111)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 
 	array, err := br.RedisGetArray(dataBase.RedisAuthTokens)
 	if err != nil {
-		fmt.Println(3)
 		c.AbortWithStatusJSON(http.StatusInternalServerError, models.ResponseMsg(false, "db_error", errorCodes.DBError))
 		return
 	}
@@ -54,19 +50,16 @@ func (br *Broker) IsAuthorized(c *gin.Context) {
 			continue
 		}
 		if tok.AccessToken == token {
-			fmt.Println(tok)
-			fmt.Println(token)
 			tokenExist = true
 			break
 		}
 		tokens = append(tokens, tok)
 	}
 	if tokenExist {
-		fmt.Println(4)
 		c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 }
-func IsAdmin() {
+func IsAdmin(c *gin.Context) {
 	fmt.Println("IsAdmin")
 }

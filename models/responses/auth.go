@@ -22,3 +22,9 @@ type RegisterResponse struct {
 	Error bool     `json:"error"`
 	User  UserInfo `json:"user"`
 }
+
+type Refresh struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	UserId       int    `json:"user_id"`
+}
