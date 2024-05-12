@@ -4,10 +4,15 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/rand"
+	"time"
 )
 
 func GenerateNumberCode() int {
-	code := rand.Intn(1000000)
+	// Инициализация генератора псевдослучайных чисел
+	rand.Seed(time.Now().UnixNano())
+
+	// Генерация числа от 100000 до 999999
+	code := rand.Intn(900000) + 100000
 	return code
 }
 
