@@ -26,8 +26,8 @@ import (
 // @Produce json
 // @Param body body body.Login true "request body"
 // @Success 200 object responses.AuthResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Router /auth/login [post]
 
 func (a *App) Login(c *gin.Context) {
@@ -43,7 +43,7 @@ func (a *App) Login(c *gin.Context) {
 		return
 	}
 
-	userInfo, err := a.db.UserInfo(user.Login)
+	userInfo, err := a.db.UserInfo(user.Login, user.Login)
 	if err != nil {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -205,10 +205,10 @@ func (a *App) Register(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body body.Send true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 403 object models.ErrorResponse
-// @Failure 404 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 403 object models.ResponseMsg
+// @Failure 404 object models.ResponseMsg
 // @Failure 500
 // @Router /auth/activate/send [post]
 func (a *App) Send(c *gin.Context) {
@@ -293,10 +293,10 @@ func (a *App) Send(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body body.Activate true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 403 object models.ErrorResponse
-// @Failure 404 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 403 object models.ResponseMsg
+// @Failure 404 object models.ResponseMsg
 // @Failure 500
 // @Router /auth/activate [post]
 func (a *App) Activate(c *gin.Context) {
@@ -394,8 +394,8 @@ func (a *App) Activate(c *gin.Context) {
 // @Produce json
 // @Param body body auth.Token true "request body"
 // @Success 200 object models.AccessToken
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Router /auth/refresh [post]
 func (a *App) Refresh(c *gin.Context) {
@@ -489,9 +489,9 @@ func (a *App) Refresh(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Success 200 object models.SuccessResponse
-// @Failure 401 object models.ErrorResponse
-// @Failure 403 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
+// @Failure 403 object models.ResponseMsg
 // @Failure 500
 // @Router /auth/logout [post]
 func (a *App) Logout(c *gin.Context) {
@@ -525,10 +525,10 @@ func (a *App) Logout(c *gin.Context) {
 // @Produce json
 // @Param body body models.RegistrationCodeBody true "request body"
 // @Success 200 object models.CodeCheckResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
-// @Failure 403 object models.ErrorResponse
-// @Failure 404 object models.ErrorResponse
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
+// @Failure 403 object models.ResponseMsg
+// @Failure 404 object models.ResponseMsg
 // @Failure 500
 // @Router /auth/register/check [post]
 func (a *App) CheckRegistrationCode(c *gin.Context) {
@@ -591,9 +591,9 @@ func (a *App) CheckRegistrationCode(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.SendMail true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 403 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 403 object models.ResponseMsg
 // @Failure 500
 // @Router /auth/recovery [post]
 func (a *App) Recovery(c *gin.Context) {
@@ -619,8 +619,8 @@ func (a *App) Recovery(c *gin.Context) {
 		return
 	}
 
-	var checkUser models.RegToken
 	// Check if user already sent email
+	var checkUser models.RegToken
 	a.db.Model(&models.RegToken{}).Where("user_id = ? AND type = ?", foundUser.ID, 1).First(&checkUser)
 	if checkUser.Created < time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
 		a.db.Model(&models.RegToken{}).Where("user_id = ?", checkUser.UserId).Delete(models.RegToken{UserId: checkUser.UserId, Type: 0})
@@ -665,10 +665,10 @@ func (a *App) Recovery(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.RecoverySubmit true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
-// @Failure 404 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
+// @Failure 404 object models.ResponseMsg
 // @Failure 500
 // @Router /auth/recovery/submit [post]
 func (a *App) RecoverySubmit(c *gin.Context) {

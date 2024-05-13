@@ -5,12 +5,12 @@ import (
 	"fmt"
 )
 
-func (db *Database) UserInfo(login string) (models.FullUserInfo, error) {
+func (db *Database) UserInfo(login interface{}, email interface{}) (models.FullUserInfo, error) {
 	var fullUserInfo models.FullUserInfo
 	data := db.DB.
 		Select(
 			"users.id, users.login, users.name, users.surname, users.email, users.phone, users.role_id, users.active, users.pass, users.created, users.updated, users.avatar_id").
-		Where("users.login = ?", login).
+		Where("users.login = ? OR users.email = ?", login, email).
 		First(&models.User{}).First(&fullUserInfo)
 	fmt.Println(fullUserInfo)
 

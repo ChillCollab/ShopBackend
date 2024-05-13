@@ -21,11 +21,6 @@ type UserRole struct {
 	Updated string `json:"updated"`
 }
 
-type UserInfo struct {
-	User
-	Role int `json:"role"`
-}
-
 type EmailChangeRequest struct {
 	Email string `json:"email"`
 }
@@ -57,16 +52,6 @@ type ChangeUser struct {
 	Role    int    `json:"role"`
 }
 
-type ChangeUserInfo struct {
-	Login   string `json:"login"`
-	Name    string `json:"name"`
-	Surname string `json:"surname"`
-	Phone   string `json:"phone"`
-}
-
-type UsersArray struct {
-	ID []int `json:"id"`
-}
 type UserPass struct {
 	UserId  uint   `gorm:"unique" json:"user_id"`
 	Pass    string `json:"pass"`

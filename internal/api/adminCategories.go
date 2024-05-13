@@ -2,6 +2,8 @@ package api
 
 import (
 	"backend/internal/api/middlewares"
+	"backend/models/body"
+	"backend/models/responses"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -22,64 +24,34 @@ import (
 // @Accept json
 // @Produce json
 // @Param body body models.CategoryCreateBody true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/create [post]
 func (a *App) CreateCategory(c *gin.Context) {
-	var categoryBody models.CategoryCreateBody
 	lang := language.LangValue(c)
 	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
 
-	if !middlewares.CheckAdmin(token) {
-		c.JSON(http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
-
-	rawData, err := c.GetRawData()
-	if err != nil {
-		c.JSON(
-			http.StatusBadRequest,
-			models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError),
-		)
-		return
-	}
-
-	if err := json.Unmarshal(rawData, &categoryBody); err != nil {
-		c.JSON(
-			http.StatusBadRequest,
-			models.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorCodes.UnmarshalError),
-		)
+	var categoryBody body.CreateCategory
+	if err := c.ShouldBindJSON(&categoryBody); err != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
 		return
 	}
 
 	categoryCode := utils.LongCodeGen()
 	userEmail := middlewares.JwtParse(token).Email
-	var foundUser []models.User
-	a.db.Model(models.User{}).Where("email = ?", userEmail).Find(&foundUser)
-	if len(foundUser) <= 0 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "inc"), errorCodes.Unauthorized))
-		return
-	} else if len(foundUser) > 1 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
+	var foundUser models.User
+	if err := a.db.Model(models.User{}).Where("email = ?", userEmail).First(&foundUser).Error; err != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 
 	category := models.Category{
 		Name:       categoryBody.Name,
 		CategoryID: categoryCode,
-		CreatorID:  foundUser[0].ID,
+		CreatorID:  foundUser.ID,
 		Created:    dataBase.TimeNow(),
 		Updated:    dataBase.TimeNow(),
 	}
@@ -110,22 +82,13 @@ func (a *App) CreateCategory(c *gin.Context) {
 // @Produce json
 // @Param category_id query string true "category id"
 // @Success 200 object models.CategoryInfo
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/info [get]
 func (a *App) CategoryInfoById(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
-	if !middlewares.CheckAdmin(token) {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
 
 	categoryId := c.Query("category_id")
 
@@ -155,7 +118,7 @@ func (a *App) CategoryInfoById(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.CategoryInfo{
+	c.JSON(http.StatusOK, responses.CategoryInfo{
 		CategoryID:  foundCategory[0].CategoryID,
 		Name:        foundCategory[0].Name,
 		Image:       foundCategoryImage[0].Image,
@@ -172,22 +135,13 @@ func (a *App) CategoryInfoById(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Success 200 object []models.CategoryInfo
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/list [get]
 func (a *App) GetCategoryList(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
-	if !middlewares.CheckAdmin(token) {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
 
 	var foundCategories []models.Category
 	a.db.Model(&models.Category{}).Find(&foundCategories)
@@ -197,7 +151,7 @@ func (a *App) GetCategoryList(c *gin.Context) {
 		return
 	}
 
-	var categoryList []models.CategoryInfo
+	var categoryList []responses.CategoryInfo
 	for _, category := range foundCategories {
 		var foundCategoryDescription []models.CategoryDescription
 		var foundCategoryImage []models.CategoryImage
@@ -216,7 +170,7 @@ func (a *App) GetCategoryList(c *gin.Context) {
 			return
 		}
 
-		categoryList = append(categoryList, models.CategoryInfo{
+		categoryList = append(categoryList, responses.CategoryInfo{
 			CategoryID:  category.CategoryID,
 			Name:        category.Name,
 			Image:       foundCategoryImage[0].Image,
@@ -236,23 +190,14 @@ func (a *App) GetCategoryList(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.CategoryUpdateBody true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/update [patch]
 func (a *App) CategoryUpdate(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
-	if !middlewares.CheckAdmin(token) {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
 
 	var categoryBody models.CategoryUpdateBody
 	rawData, err := c.GetRawData()
@@ -324,23 +269,14 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.CategoryDeleteBody true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/delete [delete]
 func (a *App) DeleteCategory(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
-	if !middlewares.CheckAdmin(token) {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
 
 	var categoryBody models.CategoryDeleteBody
 	rawData, err := c.GetRawData()

@@ -2,6 +2,8 @@ package api
 
 import (
 	"backend/internal/api/middlewares"
+	"backend/models/body"
+	"backend/models/responses"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -22,59 +24,43 @@ import (
 // @Tags User
 // @Accept json
 // @Produce json
-// @Success 200 array models.UserInfo
-// @Failure 401 object models.ErrorResponse
+// @Success 200 array responses.UserInfo
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/info [get]
 func (a *App) Info(c *gin.Context) {
 	lang := language.LangValue(c)
+
 	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+	parsedToken := middlewares.JwtParse(token)
+
+	// Get full user info
+	var users models.User
+	userInfo, err := a.db.UserInfo(parsedToken.Email, parsedToken.Email)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "internal_error"), errorCodes.DBError))
 		return
 	}
 
-	email := middlewares.JwtParse(token).Email
-	var users []models.User
-	result := a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
-	if result.Error != nil {
-		a.logger.Errorf("error get user info: %v", result.Error)
-		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, "internal error", errorCodes.DBError))
-		return
-	}
-
-	// Мне не нравится такой подход проверки
-	if len(users) <= 0 {
-		c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
-
-	var roles []models.UserRole
-	result = a.db.Model(models.UserRole{}).Where("id = ?", users[0].ID).Find(&roles)
-	if result.Error != nil {
-		a.logger.Errorf("error get user info: %v", result.Error)
-		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, "internal error", errorCodes.DBError))
-		return
-	}
-
+	// Set avatar url
 	var url string
-	if users[0].AvatarId != "" {
-		url = images.AvatarUrl(users[0].AvatarId)
+	if users.AvatarId != "" {
+		url = images.AvatarUrl(users.AvatarId)
 	}
-	// он и так будет пустой
-	//} else {
-	//	url = ""
-	//}
 
-	users[0].AvatarId = url
+	users.AvatarId = url
 
-	c.JSON(http.StatusOK, models.UserInfo{
-		Role: roles[0].Role,
-		User: users[0],
+	// Response
+	c.JSON(http.StatusOK, responses.UserInfo{
+		Login:   userInfo.Name,
+		Name:    userInfo.Name,
+		Surname: userInfo.Surname,
+		Phone:   userInfo.Phone,
+		Email:   userInfo.Email,
+		Role:    userInfo.RoleId,
+		Created: userInfo.Created,
+		Updated: userInfo.Updated,
 	})
 }
 
@@ -84,54 +70,35 @@ func (a *App) Info(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param body body models.ChangePassword true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 401 object models.ErrorResponse
-// @Failure 403 object models.ErrorResponse
+// @Param body body body.ChangePassword true "request body"
+// @Success 200 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
+// @Failure 403 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/changepass [post]
 func (a *App) ChangePassword(c *gin.Context) {
 	lang := language.LangValue(c)
-	var passwordData models.ChangePassword
 
-	rawData, err := c.GetRawData()
-	if err != nil {
+	var passwordData body.ChangePassword
+
+	if err := c.ShouldBindJSON(&passwordData); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
 		return
 	}
 
-	if err := json.Unmarshal(rawData, &passwordData); err != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorCodes.ParsingError))
-		return
-	}
-
-	// Сначало проверка авторизации, потом проверка полученных данных.
 	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(401, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+	parsedToken := middlewares.JwtParse(token)
+
+	fullUserInfo, err := a.db.UserInfo(parsedToken.Email, parsedToken.Email)
+	if err != nil {
+		a.logger.Errorf("error get user info: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "internal_error"), errorCodes.DBError))
 		return
-	}
-
-	email := middlewares.JwtParse(token).Email
-	var users []models.User
-	var userPass []models.UserPass
-	// Проверка ошибок выполнения
-	a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
-	a.db.Model(models.UserPass{}).Where("user_id = ?", users[0].ID).Find(&userPass)
-
-	if len(userPass) <= 0 {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
-
-	if len(userPass) > 1 {
-		//Сука опять паника
-		panic("duplicate data")
 	}
 
 	hashOldPass := utils.Hash(passwordData.OldPassword)
-	if userPass[0].Pass != hashOldPass {
+	if fullUserInfo.Pass != hashOldPass {
 		c.JSON(
 			http.StatusBadRequest,
 			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.IncorrectOldPassword),
@@ -146,7 +113,7 @@ func (a *App) ChangePassword(c *gin.Context) {
 	}
 	hashNewPass := utils.Hash(passwordData.NewPassword)
 
-	err = a.db.Model(models.UserPass{}).Where("user_id = ?", users[0].ID).Update("pass", hashNewPass).Error
+	err = a.db.Model(models.User{}).Where("user_id = ?", fullUserInfo.ID).Update("pass", hashNewPass).Error
 	if err != nil {
 		a.logger.Errorf("error update password user: %v", err)
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, "internal error", errorCodes.DBError))
@@ -162,16 +129,16 @@ func (a *App) ChangePassword(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param body body models.ChangeUserInfo true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Param body body body.ChangeUserInfo true "request body"
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/change [patch]
 func (a *App) ChangeOwnData(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user models.ChangeUserInfo
+	var user body.ChangeUserInfo
 
 	rawData, err := c.GetRawData()
 	if err != nil {
@@ -250,9 +217,9 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.EmailChangeRequest true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/change/email [post]
@@ -332,8 +299,8 @@ func (a *App) ChangeEmail(c *gin.Context) {
 // @Produce json
 // @Param body body models.EmailChangeComplete true "request body"
 // @Success 200 object models.EmailChangeResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/change/email/submit [patch]
@@ -400,7 +367,6 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	}
 
 	tokens := models.RejectedToken{
-		//UserId:       users[0].ID,
 		AccessToken:  access,
 		RefreshToken: refresh,
 	}

@@ -1,14 +1,13 @@
 package api
 
 import (
-	"backend/internal/api/middlewares"
-	"encoding/json"
+	"backend/internal/roles"
+	"backend/models/body"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"backend/internal/api/middlewares/images"
-	userMiddlewares "backend/internal/api/middlewares/user"
 	"backend/internal/errorCodes"
 	"backend/models"
 	"backend/models/language"
@@ -24,28 +23,12 @@ import (
 // @Accept json
 // @Produce json
 // @Success 200 array models.User
-// @Failure 401 object models.ErrorResponse
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/users/list [get]
 func (a *App) Users(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
-
-	if !middlewares.CheckAdmin(token) {
-		c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
 
 	var users []models.User
 	result := a.db.Model(models.User{}).Find(&users)
@@ -74,67 +57,36 @@ func (a *App) Users(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.ChangeUser true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 401 object models.ErrorResponse
-// @Failure 403 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
+// @Failure 403 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/users/change [post]
 func (a *App) ChangeUser(c *gin.Context) {
 	lang := language.LangValue(c)
+
 	var user models.ChangeUser
-	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
 
-	if !middlewares.CheckAdmin(token) {
-		c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
-
-	rawData, err := c.GetRawData()
+	err := c.ShouldBindJSON(&user)
 	if err != nil {
-		c.JSON(
-			http.StatusBadRequest,
-			models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError),
-		)
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
 		return
 	}
-
-	if err := json.Unmarshal(rawData, &user); err != nil {
-		a.logger.Errorf("error unmarshal changeuser: %v", err)
-		c.JSON(
-			http.StatusBadRequest,
-			models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError),
-		)
-		return
-	}
-
 	if user.ID == 0 {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "must_be_include_id"), errorCodes.UserNotFound))
 		return
 	}
-
 	if len(user.Name) > 32 || len(user.Surname) > 32 {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "name_surname_long"), errorCodes.IncorrectInfoData))
 		return
 	}
-
 	if user.Phone != "" {
 		if valid := utils.PhoneNumberValidator(user.Phone); !valid {
 			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "invalid_phone_number_format"), errorCodes.IncorrectUserPhone))
 			return
 		}
 	}
-
 	if user.Login != "" {
 		if valid := utils.ValidateLogin(user.Login); !valid {
 			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "login_can_be_include_letters_digits"), errorCodes.IncorrectUserLogin))
@@ -165,7 +117,7 @@ func (a *App) ChangeUser(c *gin.Context) {
 	var foundRole []models.UserRole
 	if user.Role != 0 {
 		found := false
-		for _, num := range userMiddlewares.UserRoles() {
+		for _, num := range roles.UserRoles() {
 			if num == user.Role {
 				found = true
 				break
@@ -217,53 +169,31 @@ func (a *App) ChangeUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param body body models.UsersArray true "request body"
-// @Success 200 object models.SuccessResponse
-// @Failure 400 object models.ErrorResponse
-// @Failure 401 object models.ErrorResponse
+// @Success 200 object models.ResponseMsg
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/users/delete [delete]
 func (a *App) DeleteUsers(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.GetToken(c)
-	if token == "" {
-		c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
 
-	if !middlewares.CheckAdmin(token) {
-		c.JSON(
-			http.StatusUnauthorized,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
-		)
-		return
-	}
-
-	rawData, err := c.GetRawData()
+	var usersArray body.UsersArray
+	err := c.ShouldBindJSON(&usersArray)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
 		return
 	}
-
-	var usersArray models.UsersArray
-	if err := json.Unmarshal(rawData, &usersArray); err != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
-		return
-	}
-
 	if len(usersArray.ID) <= 0 {
 		c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "user_deleted"), 0))
 		return
 	}
-
 	idsString := make([]string, len(usersArray.ID))
 	for i, id := range usersArray.ID {
 		idsString[i] = strconv.Itoa(id)
 	}
 
+	// Get users by id
 	result := a.db.Model(models.User{}).Where("id IN ?", usersArray.ID).Delete(models.User{})
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusOK, models.ResponseMsg(false, language.Language(lang, "users_not_found_by_id"), errorCodes.UsersNotFound))

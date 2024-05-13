@@ -7,7 +7,6 @@ import (
 	"backend/models/language"
 	"backend/pkg/broker"
 	"encoding/json"
-	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -61,5 +60,11 @@ func (br *Broker) IsAuthorized(c *gin.Context) {
 	}
 }
 func IsAdmin(c *gin.Context) {
-	fmt.Println("IsAdmin")
+	lang := language.LangValue(c)
+	token := GetToken(c)
+	parsedToken := JwtParse(token)
+	if parsedToken.Role.(float64) < 1 {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		return
+	}
 }

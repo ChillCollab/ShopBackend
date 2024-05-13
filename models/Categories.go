@@ -22,22 +22,6 @@ type CategoryImage struct {
 	Updated    string `json:"updated"`
 }
 
-type CategoryCreateBody struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Image       string `json:"image"`
-}
-
-type CategoryInfo struct {
-	CategoryID  string `json:"category_id"`
-	Name        string `json:"name"`
-	Image       string `json:"image"`
-	Description string `json:"description"`
-	CreatorID   uint   `json:"creator_id"`
-	Created     string `json:"created"`
-	Updated     string `json:"updated"`
-}
-
 type CategoryInfoByIdBody struct {
 	CategoryID string `json:"category_id"`
 }

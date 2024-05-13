@@ -65,11 +65,6 @@ type RejectedToken struct {
 	RefreshToken string `gorm:"unique" json:"refresh_token"`
 }
 
-type ChangePassword struct {
-	OldPassword string `json:"old_password"`
-	NewPassword string `json:"new_password"`
-}
-
 type RecoverySubmit struct {
 	Code     string `json:"code"`
 	Password string `json:"password"`
