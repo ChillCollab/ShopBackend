@@ -85,13 +85,6 @@ func JwtParse(jw string) JwtData {
 	return JwtData{}
 }
 
-func CheckAdmin(jw string) bool {
-	data := JwtParse(jw)
-	if role, ok := data.Role.(float64); ok {
-		return int(role) == 1
-	}
-	return false
-}
 func generateToken(data TokenData, alive int, signingKey string) (string, error) {
 	token := jwt.New(jwt.SigningMethodHS256)
 
