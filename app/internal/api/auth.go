@@ -459,29 +459,29 @@ func (a *App) Refresh(c *gin.Context) {
 		a.logger.Error(err)
 	}
 
-	newTokens := responses.Refresh{
-		AccessToken:  access,
-		RefreshToken: refresh,
-		UserId:       int(user.ID),
+	rejectedTokens := models.RejectedToken{
+		AccessToken:  token,
+		RefreshToken: dataToken.Token,
 	}
 
-	err = a.db.Model(models.RejectedToken{}).Create(newTokens).Error
+	err = a.db.Model(models.RejectedToken{}).Create(rejectedTokens).Error
 	if err != nil {
 		a.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
 	}
 
-	if err := a.broker.RedisAddToArray(dataBase.RedisAuthTokens, models.RejectedToken{
-		AccessToken:  token,
-		RefreshToken: dataToken.Token,
-	}); err != nil {
+	if err := a.broker.RedisAddToArray(dataBase.RedisAuthTokens, rejectedTokens); err != nil {
 		a.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
 	}
 
-	c.JSON(http.StatusOK, newTokens)
+	c.JSON(http.StatusOK, responses.Refresh{
+		AccessToken:  access,
+		RefreshToken: refresh,
+		UserId:       int(user.ID),
+	})
 }
 
 // @Summary Logout from account
