@@ -24,3 +24,7 @@ type Activate struct {
 type Refresh struct {
 	Token string `json:"token"`
 }
+
+type ChangeEmail struct {
+	Email string `json:"email"`
+}

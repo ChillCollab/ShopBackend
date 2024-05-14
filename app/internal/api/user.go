@@ -1,19 +1,18 @@
 package api
 
 import (
-	"backend/models/body"
-	"backend/models/responses"
-	"backend/pkg/authorization"
-	"encoding/json"
-	"net/http"
-	"strconv"
-
 	"backend/internal/api/middlewares/images"
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
 	"backend/models"
+	"backend/models/body"
 	"backend/models/language"
+	"backend/models/responses"
+	"backend/pkg/authorization"
 	"backend/pkg/utils"
+	"encoding/json"
+	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -216,7 +215,7 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param body body models.EmailChangeRequest true "request body"
+// @Param body body body.ChangeEmail true "request body"
 // @Success 200 object models.ResponseMsg
 // @Failure 400 object models.ResponseMsg
 // @Failure 401 object models.ResponseMsg
@@ -225,36 +224,26 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 // @Router /user/change/email [post]
 func (a *App) ChangeEmail(c *gin.Context) {
 	lang := language.LangValue(c)
-	var emailData models.EmailChangeRequest
+	var emailData body.ChangeEmail
 
-	rawData, err := c.GetRawData()
-	if err != nil {
+	if err := c.ShouldBindJSON(&emailData); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
 		return
 	}
-	if err := json.Unmarshal(rawData, &emailData); err != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorCodes.ParsingError))
-		return
-	}
-	token := authorization.GetToken(c)
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
 
+	token := authorization.GetToken(c)
 	email := authorization.JwtParse(token).Email
 
-	var users []models.User
+	var user models.User
 
-	a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
-	if len(users) <= 0 {
+	tx := a.db.Begin()
+
+	if err := tx.Model(models.User{}).Where("email = ?", email).First(&user).Error; err != nil {
+		a.logger.Infof("error get user: %v", err)
+	}
+	if user.ID == 0 {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorCodes.UsersNotFound))
 		return
-	}
-
-	if len(users) > 1 {
-		//сука
-		panic("duplicate data")
 	}
 
 	if valid := utils.MailValidator(emailData.Email); !valid {
@@ -262,33 +251,43 @@ func (a *App) ChangeEmail(c *gin.Context) {
 		return
 	}
 
-	var foundCode []models.EmailChange
+	var foundCode models.EmailChange
 
-	a.db.Model(models.EmailChange{}).Where("user_id = ?", users[0].ID).Find(&foundCode)
-	if len(foundCode) > 0 || len(foundCode) > 1 {
-		a.db.Model(models.EmailChange{}).Where("user_id = ?", users[0].ID).Delete(&foundCode)
+	if err := a.db.Model(models.EmailChange{}).Where("user_id = ?", user.ID).First(&foundCode).Error; err != nil {
+		a.logger.Infof("error get email change code: %v", err)
+	}
+	if foundCode.Code != 0 {
+		if err := tx.Model(models.EmailChange{}).Where("user_id = ?", user.ID).Delete(&foundCode).Error; err != nil {
+			tx.Rollback()
+			a.logger.Errorf("error delete email change code: %v", err)
+		}
 	}
 
 	code := utils.GenerateNumberCode()
-	sent := utils.Send(users[0].Email, "Email change", "Your submit code: "+strconv.Itoa(code), a.db.DB)
-	if !sent {
-		c.JSON(
-			http.StatusInternalServerError,
-			models.ResponseMsg(false, language.Language(lang, "email_error"), errorCodes.EmailSendError),
-		)
-		return
-	}
+	go func() {
+		sent := utils.Send(user.Email, "Email change", "Your submit code: "+strconv.Itoa(code), a.db.DB)
+		if !sent {
+			c.JSON(
+				http.StatusInternalServerError,
+				models.ResponseMsg(false, language.Language(lang, "email_error"), errorCodes.EmailSendError),
+			)
+			return
+		}
+	}()
 
-	// Ты должен использовать .Save
-	newEmail := models.EmailChange{
-		UserID:  users[0].ID,
+	if err := tx.Model(&models.EmailChange{}).Save(&models.EmailChange{
+		UserID:  user.ID,
 		Email:   emailData.Email,
 		Code:    code,
 		Created: dataBase.TimeNow(),
+	}); err != nil {
+		tx.Rollback()
+		a.logger.Errorf("error save email change code: %v", err)
 	}
-	a.db.Model(models.EmailChange{}).Create(&newEmail)
 
-	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "code_was_sent")+users[0].Email, 0))
+	tx.Commit()
+
+	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "code_was_sent")+user.Email, 0))
 }
 
 // ChangeEmailComplete Поздтверждение смены email
@@ -308,70 +307,61 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	lang := language.LangValue(c)
 	var completeBody models.EmailChangeComplete
 
-	rawData, err := c.GetRawData()
-	if err != nil {
+	if err := c.ShouldBindJSON(&completeBody); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
-		return
-	}
-	if err := json.Unmarshal(rawData, &completeBody); err != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorCodes.ParsingError))
-		return
-	}
-
-	token := authorization.GetToken(c)
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 
 	code := completeBody.Code
-	var foundCode []models.EmailChange
-	a.db.Model(models.EmailChange{}).Where("code = ?", code).Find(&foundCode)
-	if len(foundCode) <= 0 {
+	var foundCode models.EmailChange
+	if err := a.db.Model(models.EmailChange{}).Where("code = ?", code).First(&foundCode).Error; err != nil {
+		a.logger.Infof("error get email change code: %v", err)
+	}
+	if foundCode.Code == 0 {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "code_not_found"), errorCodes.CodeNotFound))
 		return
-	} else if len(foundCode) > 1 {
-		panic("duplicate data")
 	}
 
-	var users []models.User
-	a.db.Model(models.User{}).Where("id = ?", foundCode[0].UserID).Find(&users)
-	if len(users) <= 0 {
+	var users models.User
+	if err := a.db.Model(models.User{}).Where("id = ?", foundCode.UserID).First(&users).Error; err != nil {
+		a.logger.Infof("error get user: %v", err)
+	}
+	if users.ID == 0 {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorCodes.UsersNotFound))
 		return
-	} else if len(users) > 1 {
-		panic("duplicate data")
 	}
 
-	var userRole []models.UserRole
-	a.db.Model(models.UserRole{}).Where("id = ?", users[0].ID).Find(&userRole)
-	if len(userRole) <= 0 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_role_not_found"), errorCodes.RoleNotFound))
+	var userRole models.UserRole
+	if err := a.db.Model(models.UserRole{}).Where("id = ?", users.ID).First(&userRole).Error; err != nil {
+		a.logger.Infof("error get user role: %v", err)
+	}
+	if userRole.ID == 0 {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "role_not_found"), errorCodes.RoleNotFound))
 		return
-	} else if len(userRole) > 1 {
-		panic("duplicate data")
 	}
 
-	a.db.Model(models.User{}).Where("id = ?", foundCode[0].UserID).Update("email", foundCode[0].Email)
-	a.db.Model(models.User{}).Where("id = ?", foundCode[0].UserID).Update("updated", dataBase.TimeNow())
+	a.db.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("email", foundCode.Email)
+	a.db.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("updated", dataBase.TimeNow())
 	a.db.Model(models.EmailChange{}).Where("code = ?", code).Delete(&foundCode)
 
 	access, refresh, err := authorization.GenerateJWT(authorization.TokenData{
 		Authorized: true,
-		Email:      foundCode[0].Email,
-		Role:       userRole[0].Role,
+		Email:      foundCode.Email,
+		Role:       userRole.Role,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "token_generate_error"), errorCodes.TokenError))
 		return
 	}
 
-	tokens := models.RejectedToken{
-		AccessToken:  access,
-		RefreshToken: refresh,
+	token := authorization.GetToken(c)
+	rejectedToken := models.RejectedToken{
+		AccessToken: token,
 	}
-	if err := a.db.Model(models.RejectedToken{}).Where("user_id = ?", users[0].ID).Updates(tokens); err.Error != nil {
-		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "token_update_error"), errorCodes.TokenUpdateError))
+
+	if err := a.broker.RedisAddToArray(dataBase.RedisAuthTokens, rejectedToken); err != nil {
+		a.logger.Errorf("error add token to redis: %v", err)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorCodes.DBError))
 		return
 	}
 

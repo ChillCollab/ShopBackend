@@ -21,9 +21,6 @@ type UserRole struct {
 	Updated string `json:"updated"`
 }
 
-type EmailChangeRequest struct {
-	Email string `json:"email"`
-}
 type EmailChange struct {
 	UserID  uint   `json:"user_id"`
 	Email   string `json:"email"`
