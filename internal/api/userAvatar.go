@@ -1,7 +1,7 @@
 package api
 
 import (
-	"backend/internal/api/middlewares"
+	"backend/pkg/authorization"
 	"fmt"
 	"net/http"
 	"os"
@@ -32,7 +32,7 @@ import (
 func (a *App) UploadAvatar(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	token := middlewares.GetToken(c)
+	token := authorization.GetToken(c)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -41,7 +41,7 @@ func (a *App) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	email := middlewares.JwtParse(token).Email
+	email := authorization.JwtParse(token).Email
 	var users []models.User
 	result := a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
 	if result.Error != nil {

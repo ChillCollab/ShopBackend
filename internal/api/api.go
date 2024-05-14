@@ -37,6 +37,14 @@ func New(server *gin.Engine, dataBase *dataBase.Database, logger logger.Logger) 
 		broker: client,
 	}
 
+	if err := dataBase.RedisSyncAuth(client); err != nil {
+		return nil, fmt.Errorf("error while syncing redis: %v", err)
+	}
+	app.logger.Info("Redis synced!")
+
+	go dataBase.RedisUpdateAuth(client)
+	app.logger.Info("Redis update started!")
+
 	app.logger.Info("Env loaded")
 
 	config := cors.DefaultConfig()
@@ -67,7 +75,7 @@ func (a *App) routes() {
 		auth := route.Group("/auth")
 		{
 			auth.POST("/login", a.Login)
-			auth.POST("/refresh", client.IsAuthorized, middlewares.IsAdmin, a.Refresh)
+			auth.POST("/refresh", client.IsAuthorized, a.Refresh)
 			auth.POST("/register", a.Register)
 			auth.POST("/activate/send", a.Send) // send email
 			auth.POST("/activate", a.Activate)

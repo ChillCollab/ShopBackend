@@ -61,8 +61,8 @@ type RegToken struct {
 }
 
 type RejectedToken struct {
-	AccessToken  string `gorm:"unique" json:"access_token"`
-	RefreshToken string `gorm:"unique" json:"refresh_token"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
 type RecoverySubmit struct {

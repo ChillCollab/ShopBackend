@@ -1,4 +1,4 @@
-package middlewares
+package authorization
 
 import (
 	"fmt"

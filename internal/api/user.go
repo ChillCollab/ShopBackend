@@ -1,9 +1,9 @@
 package api
 
 import (
-	"backend/internal/api/middlewares"
 	"backend/models/body"
 	"backend/models/responses"
+	"backend/pkg/authorization"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -32,8 +32,8 @@ import (
 func (a *App) Info(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	token := middlewares.GetToken(c)
-	parsedToken := middlewares.JwtParse(token)
+	token := authorization.GetToken(c)
+	parsedToken := authorization.JwtParse(token)
 
 	// Get full user info
 	var users models.User
@@ -87,8 +87,8 @@ func (a *App) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	token := middlewares.GetToken(c)
-	parsedToken := middlewares.JwtParse(token)
+	token := authorization.GetToken(c)
+	parsedToken := authorization.JwtParse(token)
 
 	fullUserInfo, err := a.db.UserInfo(parsedToken.Email, parsedToken.Email)
 	if err != nil {
@@ -151,7 +151,7 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 		return
 	}
 
-	token := middlewares.GetToken(c)
+	token := authorization.GetToken(c)
 	if token == "" {
 		c.JSON(
 			http.StatusUnauthorized,
@@ -160,7 +160,7 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 		return
 	}
 
-	email := middlewares.JwtParse(token).Email
+	email := authorization.JwtParse(token).Email
 
 	var users []models.User
 	a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
@@ -236,13 +236,13 @@ func (a *App) ChangeEmail(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "unmarshal_error"), errorCodes.ParsingError))
 		return
 	}
-	token := middlewares.GetToken(c)
+	token := authorization.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
 
-	email := middlewares.JwtParse(token).Email
+	email := authorization.JwtParse(token).Email
 
 	var users []models.User
 
@@ -318,7 +318,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		return
 	}
 
-	token := middlewares.GetToken(c)
+	token := authorization.GetToken(c)
 	if token == "" {
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
@@ -356,7 +356,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	a.db.Model(models.User{}).Where("id = ?", foundCode[0].UserID).Update("updated", dataBase.TimeNow())
 	a.db.Model(models.EmailChange{}).Where("code = ?", code).Delete(&foundCode)
 
-	access, refresh, err := middlewares.GenerateJWT(middlewares.TokenData{
+	access, refresh, err := authorization.GenerateJWT(authorization.TokenData{
 		Authorized: true,
 		Email:      foundCode[0].Email,
 		Role:       userRole[0].Role,

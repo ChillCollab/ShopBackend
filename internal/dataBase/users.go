@@ -2,7 +2,6 @@ package dataBase
 
 import (
 	"backend/models"
-	"fmt"
 )
 
 func (db *Database) UserInfo(login interface{}, email interface{}) (models.FullUserInfo, error) {
@@ -12,7 +11,6 @@ func (db *Database) UserInfo(login interface{}, email interface{}) (models.FullU
 			"users.id, users.login, users.name, users.surname, users.email, users.phone, users.role_id, users.active, users.pass, users.created, users.updated, users.avatar_id").
 		Where("users.login = ? OR users.email = ?", login, email).
 		First(&models.User{}).First(&fullUserInfo)
-	fmt.Println(fullUserInfo)
 
 	if data.RowsAffected == 0 {
 		return fullUserInfo, data.Error

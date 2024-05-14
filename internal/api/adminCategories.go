@@ -1,9 +1,9 @@
 package api
 
 import (
-	"backend/internal/api/middlewares"
 	"backend/models/body"
 	"backend/models/responses"
+	"backend/pkg/authorization"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -32,7 +32,7 @@ import (
 // @Router /admin/categories/create [post]
 func (a *App) CreateCategory(c *gin.Context) {
 	lang := language.LangValue(c)
-	token := middlewares.GetToken(c)
+	token := authorization.GetToken(c)
 
 	var categoryBody body.CreateCategory
 	if err := c.ShouldBindJSON(&categoryBody); err != nil {
@@ -41,7 +41,7 @@ func (a *App) CreateCategory(c *gin.Context) {
 	}
 
 	categoryCode := utils.LongCodeGen()
-	userEmail := middlewares.JwtParse(token).Email
+	userEmail := authorization.JwtParse(token).Email
 	var foundUser models.User
 	if err := a.db.Model(models.User{}).Where("email = ?", userEmail).First(&foundUser).Error; err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
