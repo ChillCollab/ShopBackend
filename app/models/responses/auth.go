@@ -28,3 +28,10 @@ type Refresh struct {
 	RefreshToken string `json:"refresh_token"`
 	UserId       int    `json:"user_id"`
 }
+
+type CheckRecoveryCode struct {
+	ID      uint   `gorm:"unique" json:"id"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Email   string `json:"email"`
+}

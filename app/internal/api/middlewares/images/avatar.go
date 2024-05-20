@@ -18,7 +18,7 @@ type FileController struct {
 }
 
 func AvatarUrl(imageId string) string {
-	return fmt.Sprintf(os.Getenv("DOMAIN")+":"+os.Getenv("APP_PORT")+"/api_v1/user/avatar/%s", imageId)
+	return fmt.Sprintf(os.Getenv("IP")+":"+os.Getenv("APP_PORT")+"/api_v1/user/avatar/%s", imageId)
 }
 
 // Это не middleware

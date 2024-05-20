@@ -593,6 +593,64 @@ func (a *App) CheckRegistrationCode(c *gin.Context) {
 	})
 }
 
+// @Summary Check recovery code if exist
+// @Description Endpoint to check recovery code if exist
+// @Tags Auth
+// @Accept json
+// @Produce json
+// @Param body body body.CheckRecoveryCode true "request body"
+// @Success 200 object responses.CheckRecoveryCode
+// @Failure 400 object models.ResponseMsg
+// @Failure 401 object models.ResponseMsg
+// @Failure 403 object models.ResponseMsg
+// @Failure 404 object models.ResponseMsg
+// @Failure 500
+// @Router /auth/recovery/check [post]
+func (a *App) CheckRecoveryCode(c *gin.Context) {
+	lang := language.LangValue(c)
+	var code body.CheckRecoveryCode
+
+	if err := c.ShouldBindJSON(&code); err != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
+		return
+	}
+
+	var foundCodes models.RegToken
+	if err := a.db.Model(models.RegToken{}).Where("code = ? AND type = ?", code.Code, 1).First(&foundCodes).Error; err != nil {
+		a.logger.Error(err)
+	}
+	if foundCodes.Code == "" {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
+		return
+	}
+
+	var user models.User
+	if err := a.db.Model(models.User{}).Where("id = ?", uint(foundCodes.UserId)).First(&user); err.Error != nil {
+		a.logger.Error(err)
+	}
+	if user.Login == "" {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
+		return
+	}
+
+	if foundCodes.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		if err := a.db.Model(&models.RegToken{}).Where("code = ?", foundCodes).Delete(foundCodes); err.Error != nil {
+			a.logger.Error(err)
+			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+			return
+		}
+		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
+		return
+	}
+
+	c.JSON(http.StatusOK, responses.CheckRecoveryCode{
+		ID:      user.ID,
+		Name:    user.Name,
+		Surname: user.Surname,
+		Email:   user.Email,
+	})
+}
+
 // @Summary Recovery user account
 // @Description Endpoint to recovery user account by email
 // @Tags Auth
@@ -657,7 +715,7 @@ func (a *App) Recovery(c *gin.Context) {
 	go func(code string) {
 		utils.Send(
 			foundUser.Email,
-			"Admin Panel password recovery!", "Your link for continue is:  "+os.Getenv("DOMAIN")+"/acc/activate/"+code+
+			"Admin Panel password recovery!", "Your link for continue is:  "+os.Getenv("DOMAIN")+"/recovery/submit/"+code+
 				"\n\nEmail: "+user.Email+
 				"\nLogin: "+foundUser.Name+
 				"\nName: "+foundUser.Name+

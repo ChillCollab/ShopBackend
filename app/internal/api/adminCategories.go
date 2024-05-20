@@ -5,7 +5,6 @@ import (
 	"backend/models/responses"
 	"backend/pkg/authorization"
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"backend/internal/dataBase"
@@ -92,40 +91,30 @@ func (a *App) CategoryInfoById(c *gin.Context) {
 
 	categoryId := c.Query("category_id")
 
-	var foundCategory []models.Category
-	a.db.Model(&models.Category{}).Where("category_id = ?", categoryId).Find(&foundCategory)
-	if len(foundCategory) <= 0 {
+	var foundCategory models.Category
+	if err := a.db.Model(&models.Category{}).Where("category_id = ?", categoryId).First(&foundCategory); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "category_not_found"), errorCodes.CategoryNotFound))
-		return
-	} else if len(foundCategory) > 1 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-		return
-	}
-	var foundCategoryDescription []models.CategoryDescription
-	var foundCategoryImage []models.CategoryImage
-	a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryId).Find(&foundCategoryDescription)
-	if len(foundCategoryDescription) <= 0 {
-		panic(fmt.Errorf("category description not found"))
-	} else if len(foundCategoryDescription) > 1 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-		return
-	}
-	a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryId).Find(&foundCategoryImage)
-	if len(foundCategoryImage) <= 0 {
-		panic(fmt.Errorf("category image not found"))
-	} else if len(foundCategoryImage) > 1 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
 		return
 	}
 
+	var foundCategoryDescription models.CategoryDescription
+	var foundCategoryImage models.CategoryImage
+	if err := a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryId).First(&foundCategoryDescription); err != nil {
+		a.logger.Logger.Errorf("error get category description: %v", err)
+	}
+
+	if err := a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryId).First(&foundCategoryImage); err != nil {
+		a.logger.Logger.Infof("error get category image: %v", err)
+	}
+
 	c.JSON(http.StatusOK, responses.CategoryInfo{
-		CategoryID:  foundCategory[0].CategoryID,
-		Name:        foundCategory[0].Name,
-		Image:       foundCategoryImage[0].Image,
-		Description: foundCategoryDescription[0].Description,
-		CreatorID:   foundCategory[0].CreatorID,
-		Created:     foundCategory[0].Created,
-		Updated:     foundCategory[0].Updated,
+		CategoryID:  foundCategory.CategoryID,
+		Name:        foundCategory.Name,
+		Image:       foundCategoryImage.Image,
+		Description: foundCategoryDescription.Description,
+		CreatorID:   foundCategory.CreatorID,
+		Created:     foundCategory.Created,
+		Updated:     foundCategory.Updated,
 	})
 }
 
@@ -143,6 +132,7 @@ func (a *App) CategoryInfoById(c *gin.Context) {
 func (a *App) GetCategoryList(c *gin.Context) {
 	lang := language.LangValue(c)
 
+	// Get all categories
 	var foundCategories []models.Category
 	a.db.Model(&models.Category{}).Find(&foundCategories)
 
@@ -151,30 +141,24 @@ func (a *App) GetCategoryList(c *gin.Context) {
 		return
 	}
 
+	// Collecting all categories
 	var categoryList []responses.CategoryInfo
 	for _, category := range foundCategories {
-		var foundCategoryDescription []models.CategoryDescription
-		var foundCategoryImage []models.CategoryImage
-		a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", category.CategoryID).Find(&foundCategoryDescription)
-		if len(foundCategoryDescription) <= 0 {
-			panic(fmt.Errorf("category description not found"))
-		} else if len(foundCategoryDescription) > 1 {
-			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-			return
+		var foundCategoryDescription models.CategoryDescription
+		var foundCategoryImage models.CategoryImage
+		if err := a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", category.CategoryID).First(&foundCategoryDescription); err != nil {
+			a.logger.Errorf("error get category description: %v", category.Name)
 		}
-		a.db.Model(&models.CategoryImage{}).Where("category_id = ?", category.CategoryID).Find(&foundCategoryImage)
-		if len(foundCategoryImage) <= 0 {
-			panic(fmt.Errorf("category image not found"))
-		} else if len(foundCategoryImage) > 1 {
-			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-			return
+
+		if err := a.db.Model(&models.CategoryImage{}).Where("category_id = ?", category.CategoryID).First(&foundCategoryImage); err != nil {
+			a.logger.Errorf("error get category image: %v", category.Name)
 		}
 
 		categoryList = append(categoryList, responses.CategoryInfo{
 			CategoryID:  category.CategoryID,
 			Name:        category.Name,
-			Image:       foundCategoryImage[0].Image,
-			Description: foundCategoryDescription[0].Description,
+			Image:       foundCategoryImage.Image,
+			Description: foundCategoryDescription.Description,
 			CreatorID:   category.CreatorID,
 			Created:     category.Created,
 			Updated:     category.Updated,
@@ -210,50 +194,42 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 		return
 	}
 
-	var foundCategory []models.Category
-	a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).Find(&foundCategory)
-	if len(foundCategory) <= 0 {
+	// Get category
+	var foundCategory models.Category
+	if err := a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).First(&foundCategory); err != nil {
+		a.logger.Errorf("error get category: %v", err)
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "category_not_found"), errorCodes.CategoryNotFound))
 		return
-	} else if len(foundCategory) > 1 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-		return
 	}
 
-	var foundCategoryDescription []models.CategoryDescription
-	var foundCategoryImage []models.CategoryImage
-	a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryBody.CategoryID).Find(&foundCategoryDescription)
-	if len(foundCategoryDescription) <= 0 {
-		panic(fmt.Errorf("category description not found"))
-	} else if len(foundCategoryDescription) > 1 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-		return
+	// Get category description and image
+	var foundCategoryDescription models.CategoryDescription
+	var foundCategoryImage models.CategoryImage
+	if err := a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryBody.CategoryID).First(&foundCategoryDescription); err != nil {
+		a.logger.Errorf("error get category description: %v", err)
 	}
-	a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryBody.CategoryID).Find(&foundCategoryImage)
-	if len(foundCategoryImage) <= 0 {
-		panic(fmt.Errorf("category image not found"))
-	} else if len(foundCategoryImage) > 1 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-		return
+	if err := a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryBody.CategoryID).Find(&foundCategoryImage); err != nil {
+		a.logger.Errorf("error get category image: %v", err)
 	}
 
+	// Update category
 	newCategory := models.Category{
-		Name:       utils.IfEmpty(categoryBody.Name, foundCategory[0].Name),
-		CategoryID: foundCategory[0].CategoryID,
-		CreatorID:  foundCategory[0].CreatorID,
-		Created:    foundCategory[0].Created,
+		Name:       utils.IfEmpty(categoryBody.Name, foundCategory.Name),
+		CategoryID: foundCategory.CategoryID,
+		CreatorID:  foundCategory.CreatorID,
+		Created:    foundCategory.Created,
 		Updated:    dataBase.TimeNow(),
 	}
 	newCategoryDescription := models.CategoryDescription{
-		CategoryID:  foundCategoryDescription[0].CategoryID,
-		Description: utils.IfEmpty(categoryBody.Description, foundCategoryDescription[0].Description),
-		Created:     foundCategoryDescription[0].Created,
+		CategoryID:  foundCategoryDescription.CategoryID,
+		Description: utils.IfEmpty(categoryBody.Description, foundCategoryDescription.Description),
+		Created:     foundCategoryDescription.Created,
 		Updated:     dataBase.TimeNow(),
 	}
 	newCategoryImage := models.CategoryImage{
-		CategoryID: foundCategoryImage[0].CategoryID,
-		Image:      utils.IfEmpty(categoryBody.Image, foundCategoryImage[0].Image),
-		Created:    foundCategoryImage[0].Created,
+		CategoryID: foundCategoryImage.CategoryID,
+		Image:      utils.IfEmpty(categoryBody.Image, foundCategoryImage.Image),
+		Created:    foundCategoryImage.Created,
 		Updated:    dataBase.TimeNow(),
 	}
 	a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).Updates(&newCategory)

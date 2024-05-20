@@ -28,3 +28,7 @@ type Refresh struct {
 type ChangeEmail struct {
 	Email string `json:"email"`
 }
+
+type CheckRecoveryCode struct {
+	Code string `json:"code"`
+}

@@ -83,6 +83,7 @@ func (a *App) routes() {
 			auth.POST("/recovery", a.Recovery) // send email
 			auth.POST("/recovery/submit", a.RecoverySubmit)
 			auth.POST("/register/check", a.CheckRegistrationCode)
+			auth.POST("/recovery/check", a.CheckRecoveryCode)
 		}
 		user := route.Group("/user")
 		{
