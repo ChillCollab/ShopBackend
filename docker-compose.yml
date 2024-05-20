@@ -1,0 +1,35 @@
+version: '3.4'
+
+services:
+  api:
+    build: .
+    container_name: api-container
+    ports:
+      - "11080:11080"
+    restart: always
+    depends_on:
+      - redis
+    environment:
+      - DOMAIN=http://127.0.0.1
+      - IP=127.0.0.1
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=server
+      - DB_PASSWORD=Server123!@
+      - DB_NAME=server
+      - DB_SSLMODE=disable
+      - REDIS_HOST=redis:6379
+      - REDIS_PASSWORD=""
+      - APP_PORT=11080
+      - DATE_FORMAT='2006-01-02 15:04:05'
+      - SALT_PASSWORD=12345
+      - JWT_SECRET=12345
+      - ACCESS_ALIVE=60
+      - REFRESH_ALIVE=1440
+  redis:
+    image: redis:6.2
+    container_name: redis-container
+    ports:
+      - "6379:6379"
+    restart: always
+
