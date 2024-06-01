@@ -3,6 +3,7 @@ package api
 import (
 	"backend/pkg/authorization"
 	"fmt"
+	"gorm.io/gorm"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -124,6 +125,9 @@ func (a *App) UploadAvatar(c *gin.Context) {
 		return
 	}
 
+	fmt.Println(uuid)
+	fmt.Println(email)
+
 	result = a.db.Model(&models.User{}).Where("email = ?", email).Update("avatar_id", uuid)
 	if result.Error != nil {
 		a.logger.Errorf("error update avatar: %v", err)
@@ -134,7 +138,7 @@ func (a *App) UploadAvatar(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "File uploaded successfully", "Details": fileMetadata})
 }
 
-// GetAvatar получить аватар пользователя
+// GetAvatar получить аватар пользователяadas
 // @Summary Get avatar by uuid
 // @Description Get avatar by uuid
 // @Tags User
@@ -193,4 +197,34 @@ func (a *App) GetAvatar(ctx *gin.Context) {
 	ctx.Header("Content-Type", fileContentType)
 	ctx.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 	ctx.File(filePath)
+}
+
+func DeleteFile(ctx *gin.Context, db *gorm.DB) {
+
+	uuid := ctx.Param("uuid")
+	var file models.File
+	// Retrieve the file metadata from the database
+	err := db.Where("uuid = ?", uuid).First(&file).Error
+	if err != nil {
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "File not found"})
+		return
+	}
+	// Define the path of the file to be deleted
+	filePath := filepath.Join("uploads", file.Filename)
+	// Delete the file from the server
+	err = os.Remove(filePath)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete file from upload folder"})
+		return
+	}
+	// Delete the file metadata from the database
+	err = db.Delete(&file).Error
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete file from database"})
+		return
+	}
+	// Return a success message
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "File " + file.Filename + " deleted successfully",
+	})
 }

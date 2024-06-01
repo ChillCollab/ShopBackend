@@ -2,12 +2,12 @@ package api
 
 import (
 	"backend/internal/roles"
-	"backend/models/body"
+	"backend/models/requestData"
+	"backend/pkg/images"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"backend/internal/api/middlewares/images"
 	"backend/internal/errorCodes"
 	"backend/models"
 	"backend/models/language"
@@ -23,7 +23,7 @@ import (
 // @Accept json
 // @Produce json
 // @Success 200 array models.User
-// @Failure 401 object models.ResponseMsg
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/users/list [get]
@@ -56,10 +56,10 @@ func (a *App) Users(c *gin.Context) {
 // @Tags Admin
 // @Accept json
 // @Produce json
-// @Param body body models.ChangeUser true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
-// @Failure 403 object models.ResponseMsg
+// @Param body body models.ChangeUser true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/users/change [post]
@@ -168,17 +168,17 @@ func (a *App) ChangeUser(c *gin.Context) {
 // @Tags Admin
 // @Accept json
 // @Produce json
-// @Param body body models.UsersArray true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Param body body requestData.UsersArray true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/users/delete [delete]
 func (a *App) DeleteUsers(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	var usersArray body.UsersArray
+	var usersArray requestData.UsersArray
 	err := c.ShouldBindJSON(&usersArray)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))

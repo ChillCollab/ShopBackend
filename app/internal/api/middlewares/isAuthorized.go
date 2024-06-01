@@ -8,6 +8,7 @@ import (
 	"backend/pkg/authorization"
 	"backend/pkg/broker"
 	"encoding/json"
+	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -65,6 +66,7 @@ func IsAdmin(c *gin.Context) {
 	token := authorization.GetToken(c)
 	parsedToken := authorization.JwtParse(token)
 	if parsedToken.Role.(float64) < 1 {
+		fmt.Println("Is Not Admin", parsedToken.Role.(float64))
 		c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}

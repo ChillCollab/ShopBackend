@@ -1,4 +1,4 @@
-package body
+package requestData
 
 type UsersArray struct {
 	ID []int `json:"id"`

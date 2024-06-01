@@ -10,28 +10,27 @@ import (
 	"backend/internal/dataBase"
 	errorcodes "backend/internal/errorCodes"
 	"backend/models"
-	"backend/models/body"
 	"backend/models/language"
+	"backend/models/requestData"
 	"backend/models/responses"
 	utils "backend/pkg/utils"
 
 	"github.com/gin-gonic/gin"
 )
 
-// Login авторизация
-// @Summary Auth into account
+// @Summary Login into account
 // @Description Endpoint to login into account
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body body.Login true "request body"
+// @Param body body requestData.Login true "request requestData"
 // @Success 200 object responses.AuthResponse
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Router /auth/login [post]
 
 func (a *App) Login(c *gin.Context) {
-	var user body.Login
+	var user requestData.Login
 
 	lang := language.LangValue(c)
 	err := c.ShouldBindJSON(&user)
@@ -115,15 +114,15 @@ func (a *App) Login(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body body.Register true "request body"
-// @Success 200 object models.UserRegisterComplete
+// @Param body body requestData.Register true "request requestData"
+// @Success 200 object responses.RegisterResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/register [post]
 func (a *App) Register(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user body.Register
+	var user requestData.Register
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
@@ -204,16 +203,16 @@ func (a *App) Register(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body body.Send true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 403 object models.ResponseMsg
-// @Failure 404 object models.ResponseMsg
+// @Param body body requestData.Send true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/activate/send [post]
 func (a *App) Send(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user body.Send
+	var user requestData.Send
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
@@ -292,16 +291,16 @@ func (a *App) Send(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body body.Activate true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 403 object models.ResponseMsg
-// @Failure 404 object models.ResponseMsg
+// @Param body body requestData.Activate true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/activate [post]
 func (a *App) Activate(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user body.Activate
+	var user requestData.Activate
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
@@ -392,16 +391,16 @@ func (a *App) Activate(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body auth.Token true "request body"
-// @Success 200 object models.AccessToken
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Param body body requestData.Refresh true "request requestData"
+// @Success 200 object responses.Refresh
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/refresh [post]
 func (a *App) Refresh(c *gin.Context) {
 	lang := language.LangValue(c)
 	token := authorization.GetToken(c)
-	var dataToken body.Refresh
+	var dataToken requestData.Refresh
 	if err := c.ShouldBindJSON(&dataToken); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
 		return
@@ -454,6 +453,7 @@ func (a *App) Refresh(c *gin.Context) {
 	access, refresh, err := authorization.GenerateJWT(authorization.TokenData{
 		Authorized: true,
 		Email:      user.Email,
+		Role:       user.RoleId,
 	})
 	if err != nil {
 		a.logger.Error(err)
@@ -489,9 +489,9 @@ func (a *App) Refresh(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Success 200 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
-// @Failure 403 object models.ResponseMsg
+// @Success 200 object models.SuccessResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/logout [post]
 func (a *App) Logout(c *gin.Context) {
@@ -531,12 +531,12 @@ func (a *App) Logout(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.RegistrationCodeBody true "request body"
+// @Param body body models.RegistrationCodeBody true "request requestData"
 // @Success 200 object models.CodeCheckResponse
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
-// @Failure 403 object models.ResponseMsg
-// @Failure 404 object models.ResponseMsg
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/register/check [post]
 func (a *App) CheckRegistrationCode(c *gin.Context) {
@@ -598,17 +598,17 @@ func (a *App) CheckRegistrationCode(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body body.CheckRecoveryCode true "request body"
+// @Param body body requestData.CheckRecoveryCode true "request requestData"
 // @Success 200 object responses.CheckRecoveryCode
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
-// @Failure 403 object models.ResponseMsg
-// @Failure 404 object models.ResponseMsg
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/recovery/check [post]
 func (a *App) CheckRecoveryCode(c *gin.Context) {
 	lang := language.LangValue(c)
-	var code body.CheckRecoveryCode
+	var code requestData.CheckRecoveryCode
 
 	if err := c.ShouldBindJSON(&code); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
@@ -656,10 +656,10 @@ func (a *App) CheckRecoveryCode(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.SendMail true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 403 object models.ResponseMsg
+// @Param body body models.SendMail true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/recovery [post]
 func (a *App) Recovery(c *gin.Context) {
@@ -730,11 +730,11 @@ func (a *App) Recovery(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.RecoverySubmit true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
-// @Failure 404 object models.ResponseMsg
+// @Param body body models.RecoverySubmit true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 404 object models.ErrorResponse
 // @Failure 500
 // @Router /auth/recovery/submit [post]
 func (a *App) RecoverySubmit(c *gin.Context) {

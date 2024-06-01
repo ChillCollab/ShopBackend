@@ -24,6 +24,8 @@
     "multiple_error": "Multiple error",
     "email_already_sent": "Email already sent to address: ",
     "incorrect_activation_code": "Incorrect activation code",
+    "incorrect_old_password": "Incorrect old password",
+    "role_not_found": "Role not found",
     "email_sent": "Email sent to address: ",
     "email_error": "Errors with email sending",
     "password_null": "Password can't be empty",
@@ -56,5 +58,5 @@
     "category_deleted": "Categories was deleted",
     "categories_list_empty": "Categories list is empty",
     "unsupported_file_extension": "Unsupported file format. Only JPG, JPEG, and PNG files are allowed",
-    "too_big_avaar_size": "File size exceeds the maximum allowed size of 3MB"
+    "too_big_avatar_size": "File size exceeds the maximum allowed size of 3MB"
 }

@@ -75,7 +75,7 @@ func (a *App) routes() {
 		auth := route.Group("/auth")
 		{
 			auth.POST("/login", a.Login)
-			auth.POST("/refresh", client.IsAuthorized, a.Refresh)
+			auth.POST("/refresh", a.Refresh)
 			auth.POST("/register", a.Register)
 			auth.POST("/activate/send", a.Send) // send email
 			auth.POST("/activate", a.Activate)
@@ -92,7 +92,7 @@ func (a *App) routes() {
 			user.PATCH("/change", client.IsAuthorized, a.ChangeOwnData)
 			user.POST("/change/email", client.IsAuthorized, a.ChangeEmail) // send email
 			user.PATCH("/change/email/submit", client.IsAuthorized, a.ChangeEmailComplete)
-			user.GET("/avatar/:uuid", client.IsAuthorized, a.GetAvatar)
+			user.GET("/avatar/:uuid", a.GetAvatar)
 			upload := user.Group("/upload")
 			{
 				upload.POST("/avatar", client.IsAuthorized, a.UploadAvatar)

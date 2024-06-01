@@ -1,7 +1,7 @@
 package api
 
 import (
-	"backend/models/body"
+	"backend/models/requestData"
 	"backend/models/responses"
 	"backend/pkg/authorization"
 	"encoding/json"
@@ -22,10 +22,10 @@ import (
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Param body body models.CategoryCreateBody true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Param body body requestData.CreateCategory true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/create [post]
@@ -33,7 +33,7 @@ func (a *App) CreateCategory(c *gin.Context) {
 	lang := language.LangValue(c)
 	token := authorization.GetToken(c)
 
-	var categoryBody body.CreateCategory
+	var categoryBody requestData.CreateCategory
 	if err := c.ShouldBindJSON(&categoryBody); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
 		return
@@ -80,9 +80,9 @@ func (a *App) CreateCategory(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param category_id query string true "category id"
-// @Success 200 object models.CategoryInfo
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Success 200 object responses.CategoryInfo
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/info [get]
@@ -123,9 +123,9 @@ func (a *App) CategoryInfoById(c *gin.Context) {
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Success 200 object []models.CategoryInfo
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Success 200 object []responses.CategoryInfo
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/list [get]
@@ -173,10 +173,10 @@ func (a *App) GetCategoryList(c *gin.Context) {
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Param body body models.CategoryUpdateBody true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Param body body models.CategoryUpdateBody true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/update [patch]
@@ -244,10 +244,10 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Param body body models.CategoryDeleteBody true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Param body body models.CategoryDeleteBody true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /admin/categories/delete [delete]

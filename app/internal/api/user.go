@@ -1,14 +1,14 @@
 package api
 
 import (
-	"backend/internal/api/middlewares/images"
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
 	"backend/models"
-	"backend/models/body"
 	"backend/models/language"
+	"backend/models/requestData"
 	"backend/models/responses"
 	"backend/pkg/authorization"
+	"backend/pkg/images"
 	"backend/pkg/utils"
 	"encoding/json"
 	"net/http"
@@ -24,7 +24,7 @@ import (
 // @Accept json
 // @Produce json
 // @Success 200 array responses.UserInfo
-// @Failure 401 object models.ResponseMsg
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/info [get]
@@ -35,7 +35,7 @@ func (a *App) Info(c *gin.Context) {
 	parsedToken := authorization.JwtParse(token)
 
 	// Get full user info
-	var users models.User
+
 	userInfo, err := a.db.UserInfo(parsedToken.Email, parsedToken.Email)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "internal_error"), errorCodes.DBError))
@@ -44,22 +44,23 @@ func (a *App) Info(c *gin.Context) {
 
 	// Set avatar url
 	var url string
-	if users.AvatarId != "" {
-		url = images.AvatarUrl(users.AvatarId)
+	if userInfo.AvatarId != "" {
+		url = images.AvatarUrl(userInfo.AvatarId)
 	}
 
-	users.AvatarId = url
+	userInfo.AvatarId = url
 
 	// Response
 	c.JSON(http.StatusOK, responses.UserInfo{
-		Login:   userInfo.Name,
-		Name:    userInfo.Name,
-		Surname: userInfo.Surname,
-		Phone:   userInfo.Phone,
-		Email:   userInfo.Email,
-		Role:    userInfo.RoleId,
-		Created: userInfo.Created,
-		Updated: userInfo.Updated,
+		Login:    userInfo.Login,
+		Name:     userInfo.Name,
+		Surname:  userInfo.Surname,
+		Phone:    userInfo.Phone,
+		AvatarId: url,
+		Email:    userInfo.Email,
+		Role:     userInfo.RoleId,
+		Created:  userInfo.Created,
+		Updated:  userInfo.Updated,
 	})
 }
 
@@ -69,17 +70,17 @@ func (a *App) Info(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param body body body.ChangePassword true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
-// @Failure 403 object models.ResponseMsg
+// @Param body body requestData.ChangePassword true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 403 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/changepass [post]
 func (a *App) ChangePassword(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	var passwordData body.ChangePassword
+	var passwordData requestData.ChangePassword
 
 	if err := c.ShouldBindJSON(&passwordData); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
@@ -100,7 +101,7 @@ func (a *App) ChangePassword(c *gin.Context) {
 	if fullUserInfo.Pass != hashOldPass {
 		c.JSON(
 			http.StatusBadRequest,
-			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.IncorrectOldPassword),
+			models.ResponseMsg(false, language.Language(lang, "incorrect_old_password"), errorCodes.IncorrectOldPassword),
 		)
 		return
 	}
@@ -112,7 +113,7 @@ func (a *App) ChangePassword(c *gin.Context) {
 	}
 	hashNewPass := utils.Hash(passwordData.NewPassword)
 
-	err = a.db.Model(models.User{}).Where("user_id = ?", fullUserInfo.ID).Update("pass", hashNewPass).Error
+	err = a.db.Model(models.User{}).Where("id = ?", fullUserInfo.ID).Update("pass", hashNewPass).Error
 	if err != nil {
 		a.logger.Errorf("error update password user: %v", err)
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, "internal error", errorCodes.DBError))
@@ -128,16 +129,16 @@ func (a *App) ChangePassword(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param body body body.ChangeUserInfo true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Param body body requestData.ChangeUserInfo true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/change [patch]
 func (a *App) ChangeOwnData(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user body.ChangeUserInfo
+	var user requestData.ChangeUserInfo
 
 	rawData, err := c.GetRawData()
 	if err != nil {
@@ -215,16 +216,16 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param body body body.ChangeEmail true "request body"
-// @Success 200 object models.ResponseMsg
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Param body body requestData.ChangeEmail true "request requestData"
+// @Success 200 object models.SuccessResponse
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/change/email [post]
 func (a *App) ChangeEmail(c *gin.Context) {
 	lang := language.LangValue(c)
-	var emailData body.ChangeEmail
+	var emailData requestData.ChangeEmail
 
 	if err := c.ShouldBindJSON(&emailData); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
@@ -264,6 +265,24 @@ func (a *App) ChangeEmail(c *gin.Context) {
 	}
 
 	code := utils.GenerateNumberCode()
+
+	if err := tx.Model(&models.User{}).Where("id = ?", user.ID).Update("email", emailData.Email).Error; err != nil {
+		tx.Rollback()
+		a.logger.Errorf("error update email: %v", err)
+	}
+
+	if err := tx.Model(&models.EmailChange{}).Create(&models.EmailChange{
+		UserID:  user.ID,
+		Email:   emailData.Email,
+		Code:    code,
+		Created: dataBase.TimeNow(),
+	}).Error; err != nil {
+		tx.Rollback()
+		a.logger.Errorf("error create email change code: %v", err)
+	}
+
+	tx.Commit()
+
 	go func() {
 		sent := utils.Send(user.Email, "Email change", "Your submit code: "+strconv.Itoa(code), a.db.DB)
 		if !sent {
@@ -275,18 +294,6 @@ func (a *App) ChangeEmail(c *gin.Context) {
 		}
 	}()
 
-	if err := tx.Model(&models.EmailChange{}).Save(&models.EmailChange{
-		UserID:  user.ID,
-		Email:   emailData.Email,
-		Code:    code,
-		Created: dataBase.TimeNow(),
-	}); err != nil {
-		tx.Rollback()
-		a.logger.Errorf("error save email change code: %v", err)
-	}
-
-	tx.Commit()
-
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "code_was_sent")+user.Email, 0))
 }
 
@@ -296,10 +303,10 @@ func (a *App) ChangeEmail(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param body body models.EmailChangeComplete true "request body"
+// @Param body body models.EmailChangeComplete true "request requestData"
 // @Success 200 object models.EmailChangeResponse
-// @Failure 400 object models.ResponseMsg
-// @Failure 401 object models.ResponseMsg
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
 // @Failure 500
 // @Security ApiKeyAuth
 // @Router /user/change/email/submit [patch]
@@ -331,15 +338,6 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		return
 	}
 
-	var userRole models.UserRole
-	if err := a.db.Model(models.UserRole{}).Where("id = ?", users.ID).First(&userRole).Error; err != nil {
-		a.logger.Infof("error get user role: %v", err)
-	}
-	if userRole.ID == 0 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "role_not_found"), errorCodes.RoleNotFound))
-		return
-	}
-
 	a.db.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("email", foundCode.Email)
 	a.db.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("updated", dataBase.TimeNow())
 	a.db.Model(models.EmailChange{}).Where("code = ?", code).Delete(&foundCode)
@@ -347,7 +345,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	access, refresh, err := authorization.GenerateJWT(authorization.TokenData{
 		Authorized: true,
 		Email:      foundCode.Email,
-		Role:       userRole.Role,
+		Role:       users.RoleId,
 	})
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "token_generate_error"), errorCodes.TokenError))

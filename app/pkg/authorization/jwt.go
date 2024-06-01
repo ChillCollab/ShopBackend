@@ -92,7 +92,7 @@ func generateToken(data TokenData, alive int, signingKey string) (string, error)
 	claims["authorized"] = data.Authorized
 	claims["email"] = data.Email
 	claims["role"] = data.Role
-	claims["expired"] = time.Now().Add(time.Minute * time.Duration(alive)).Unix()
+	claims["expired"] = time.Now().Add(time.Second * time.Duration(alive)).Unix()
 
 	tokenString, err := token.SignedString([]byte(signingKey))
 	if err != nil {
