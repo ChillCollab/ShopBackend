@@ -1,14 +1,15 @@
 package responses
 
 type UserInfo struct {
-	Login   string `json:"login"`
-	Name    string `json:"name"`
-	Surname string `json:"surname"`
-	Email   string `json:"email"`
-	Phone   string `json:"phone"`
-	Role    int    `json:"role"`
-	Created string `json:"created"`
-	Updated string `json:"updated"`
+	Login    string `json:"login"`
+	Name     string `json:"name"`
+	Surname  string `json:"surname"`
+	Email    string `json:"email"`
+	AvatarId string `json:"avatar_id"`
+	Phone    string `json:"phone"`
+	Role     int    `json:"role"`
+	Created  string `json:"created"`
+	Updated  string `json:"updated"`
 }
 
 type AuthResponse struct {

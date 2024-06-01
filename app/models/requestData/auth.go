@@ -1,4 +1,4 @@
-package body
+package requestData
 
 type Login struct {
 	Login    string `json:"login"`

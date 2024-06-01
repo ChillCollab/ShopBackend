@@ -1,4 +1,4 @@
-package body
+package requestData
 
 type CreateCategory struct {
 	Name        string `json:"name"`
