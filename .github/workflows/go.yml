@@ -20,5 +20,5 @@ jobs:
         go-version: '1.21'
 
     - name: Build
-      run: go mod tidy && go build -v ./cmd/ -o app
+      run: go mod tidy && go build -o ./app  cmd/main.go
       working-directory: ./app
