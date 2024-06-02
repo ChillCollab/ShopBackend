@@ -210,20 +210,21 @@ func (a *App) DeleteUsers(c *gin.Context) {
 
 	for _, usr := range users {
 		image := usr.AvatarId
-		var file models.File
-		found := a.db.Model(&models.File{}).Where("uuid = ?", image).First(&file).Error
-		if found != nil {
-			a.logger.Errorf("error find avatar: %v", err)
-			return
-		}
-		oldFilePath := filepath.Join(os.Getenv("IMAGES_PATH"), file.Filename)
-		err = os.Remove(oldFilePath)
-		if err != nil {
-			a.logger.Errorf("error create avatar: %v", err)
-		}
-		err := a.db.Model(&models.File{}).Where("uuid = ?", usr.AvatarId).Delete(&models.File{})
-		if err != nil {
-			a.logger.Errorf("error delete avatar: %v", err)
+		if image != "" {
+			var file models.File
+			found := a.db.Model(&models.File{}).Where("uuid = ?", image).First(&file).Error
+			if found != nil {
+				a.logger.Errorf("error find avatar: %v", err)
+			}
+			oldFilePath := filepath.Join(os.Getenv("IMAGES_PATH"), file.Filename)
+			err = os.Remove(oldFilePath)
+			if err != nil {
+				a.logger.Errorf("error create avatar: %v", err)
+			}
+			err := a.db.Model(&models.File{}).Where("uuid = ?", usr.AvatarId).Delete(&models.File{})
+			if err != nil {
+				a.logger.Errorf("error delete avatar: %v", err)
+			}
 		}
 	}
 
