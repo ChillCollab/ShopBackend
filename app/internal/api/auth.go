@@ -549,7 +549,7 @@ func (a *App) CheckRegistrationCode(c *gin.Context) {
 	}
 
 	var foundCodes models.RegToken
-	if err := a.db.Model(models.RegToken{}).Where("code = ? AND type = ?", code.Code, 1).First(&foundCodes).Error; err != nil {
+	if err := a.db.Model(models.RegToken{}).Where("code = ? AND type = ?", code.Code, 0).First(&foundCodes).Error; err != nil {
 		a.logger.Error(err)
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 		return
