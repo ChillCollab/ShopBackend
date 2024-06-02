@@ -125,9 +125,6 @@ func (a *App) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	fmt.Println(uuid)
-	fmt.Println(email)
-
 	result = a.db.Model(&models.User{}).Where("email = ?", email).Update("avatar_id", uuid)
 	if result.Error != nil {
 		a.logger.Errorf("error update avatar: %v", err)
@@ -153,7 +150,6 @@ func (a *App) UploadAvatar(c *gin.Context) {
 func (a *App) GetAvatar(ctx *gin.Context) {
 	uuid := ctx.Param("uuid")
 
-	fmt.Println(uuid)
 	var file models.File
 
 	err := a.db.Where("uuid = ?", uuid).First(&file).Error
