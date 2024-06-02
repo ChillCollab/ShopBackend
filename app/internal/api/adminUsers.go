@@ -5,6 +5,8 @@ import (
 	"backend/models/requestData"
 	"backend/pkg/images"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -194,6 +196,37 @@ func (a *App) DeleteUsers(c *gin.Context) {
 	}
 
 	// Get users by id
+	var users []models.User
+	found := a.db.Model(&models.User{}).Where("id IN ?", usersArray.ID).Find(&users).Error
+	if found != nil {
+		a.logger.Errorf("error find users: %v", err)
+		return
+	}
+
+	if len(users) == 0 {
+		c.JSON(http.StatusOK, models.ResponseMsg(false, language.Language(lang, "users_not_found_by_id"), errorCodes.UsersNotFound))
+		return
+	}
+
+	for _, usr := range users {
+		image := usr.AvatarId
+		var file models.File
+		found := a.db.Model(&models.File{}).Where("uuid = ?", image).First(&file).Error
+		if found != nil {
+			a.logger.Errorf("error find avatar: %v", err)
+			return
+		}
+		oldFilePath := filepath.Join(os.Getenv("IMAGES_PATH"), file.Filename)
+		err = os.Remove(oldFilePath)
+		if err != nil {
+			a.logger.Errorf("error create avatar: %v", err)
+		}
+		err := a.db.Model(&models.File{}).Where("uuid = ?", usr.AvatarId).Delete(&models.File{})
+		if err != nil {
+			a.logger.Errorf("error delete avatar: %v", err)
+		}
+	}
+
 	result := a.db.Model(models.User{}).Where("id IN ?", usersArray.ID).Delete(models.User{})
 	if result.RowsAffected == 0 {
 		c.JSON(http.StatusOK, models.ResponseMsg(false, language.Language(lang, "users_not_found_by_id"), errorCodes.UsersNotFound))
