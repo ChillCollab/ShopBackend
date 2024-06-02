@@ -62,7 +62,7 @@ jobs:
         mkdir -p ~/.ssh
         echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-        scp -P $SSH_PORT -o StrictHostKeyChecking=no ./app/languages $SERVER_USER@$SERVER_HOST:/opt/server/
+        scp -r -P $SSH_PORT -o StrictHostKeyChecking=no ./app/languages $SERVER_USER@$SERVER_HOST:/opt/server/
         ssh -p $SSH_PORT -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "rm -f /opt/server/app"
         scp -P $SSH_PORT -o StrictHostKeyChecking=no ./app/app $SERVER_USER@$SERVER_HOST:/opt/server/
         ssh -p $SSH_PORT -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_HOST "sudo systemctl restart server-api"
