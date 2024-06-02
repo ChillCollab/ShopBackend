@@ -49,6 +49,7 @@
     "invalid_phone_number_format": "Неверный формат номера телефона",
     "undefined_user_role": "Неизвестная роль пользователя",
     "user_deleted": "Пользователь был удален",
+    "is_not_active": "не активен",
     "users_not_found_by_id": "Пользователи не были найдены с предоставленными ID",
     "user_already_registered": "Пользователь уже зарегистрирован",
     "category_created": "Категория была создана",
