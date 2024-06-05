@@ -2,8 +2,8 @@ package utils
 
 import (
 	"backend/models"
+	"backend/pkg/logger"
 	"crypto/tls"
-	"fmt"
 	"regexp"
 	"strconv"
 
@@ -19,8 +19,9 @@ func MailValidator(email string) bool {
 }
 
 func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
+	log := logger.GetLogger()
 	if !MailValidator(recipient) {
-		fmt.Println("Validate mail error: Email " + recipient + " is not valid")
+		log.Errorf("Validate mail error: Email " + recipient + " is not valid")
 		return false
 	}
 
@@ -34,8 +35,8 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 	db.Model(&models.Config{}).Where("param = ?", "smtp_pass").Find(&password)
 
 	if host.Value == "" || port.Value == "" || email.Value == "" || password.Value == "" {
-		fmt.Println(host.Value, port.Value, email.Value, password.Value)
-		panic("SMTP config not found or incorrect")
+		log.Error(host.Value, port.Value, email.Value, password.Value)
+		log.Error("SMTP config not found or incorrect")
 	}
 
 	m := gomail.NewMessage()
@@ -57,9 +58,9 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 
 	if err := d.DialAndSend(m); err != nil {
-		fmt.Println(err)
-		panic(err)
+		log.Error(err)
+		return false
 	}
-	fmt.Println("Email was sent to: " + recipient)
+	log.Info("Email was sent to: " + recipient)
 	return true
 }
