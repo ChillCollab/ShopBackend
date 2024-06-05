@@ -15,3 +15,7 @@ type ChangeUserInfo struct {
 	Surname string `json:"surname"`
 	Phone   string `json:"phone"`
 }
+
+type ChangeEmailComplete struct {
+	Code int `json:"code"`
+}
