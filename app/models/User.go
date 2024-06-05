@@ -28,17 +28,6 @@ type EmailChange struct {
 	Created string `json:"created"`
 }
 
-type EmailChangeComplete struct {
-	Code int `json:"code"`
-}
-
-type EmailChangeResponse struct {
-	Success      bool   `json:"success"`
-	Messages     string `json:"messages"`
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token"`
-}
-
 type ChangeUser struct {
 	ID      uint   `gorm:"unique" json:"id"`
 	Login   string `json:"login"`

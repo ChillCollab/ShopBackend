@@ -106,11 +106,12 @@ func (a *App) ChangePassword(c *gin.Context) {
 		return
 	}
 
-	digts, symbol := utils.PasswordChecker(passwordData.NewPassword)
-	if !digts && !symbol {
+	digits, symbol := utils.PasswordChecker(passwordData.NewPassword)
+	if !digits && !symbol {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_by_include_symbols"), errorCodes.PasswordShouldByIncludeSymbols))
 		return
 	}
+
 	hashNewPass := utils.Hash(passwordData.NewPassword)
 
 	err = a.db.Model(models.User{}).Where("id = ?", fullUserInfo.ID).Update("pass", hashNewPass).Error
@@ -162,9 +163,9 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 
 	email := authorization.JwtParse(token).Email
 
-	var users []models.User
-	a.db.Model(models.User{}).Where("email = ?", email).Find(&users)
-	if len(users) <= 0 {
+	var users models.User
+	if err := a.db.Model(models.User{}).Where("email = ?", email).First(&users); err.Error != nil {
+		a.logger.Errorf("error get user: %v", err.Error)
 		c.JSON(
 			http.StatusUnauthorized,
 			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized),
@@ -185,22 +186,24 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 	}
 
 	if user.Login != "" {
-		var checkLogin []models.User
-		a.db.Model(models.User{}).Where("login = ?", user.Login).Where("id != ?", users[0].ID).Find(&checkLogin)
-		if len(checkLogin) > 0 {
+		var checkLogin models.User
+		if err := a.db.Model(models.User{}).Where("login = ?", user.Login).Where("id != ?", users.ID).First(&checkLogin); err.Error != nil {
+			a.logger.Errorf("error get user: %v", err.Error)
+		}
+		if checkLogin.ID != 0 {
 			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "login_already_exist"), errorCodes.LoginAlreadyExist))
 			return
 		}
 	}
 
 	newData := models.User{
-		Login:   utils.IfEmpty(user.Login, users[0].Login),
-		Name:    utils.IfEmpty(user.Name, users[0].Name),
-		Surname: utils.IfEmpty(user.Surname, users[0].Surname),
-		Phone:   utils.IfEmpty(user.Phone, users[0].Phone),
-		Active:  users[0].Active,
-		Email:   users[0].Email,
-		Created: users[0].Created,
+		Login:   utils.IfEmpty(user.Login, users.Login),
+		Name:    utils.IfEmpty(user.Name, users.Name),
+		Surname: utils.IfEmpty(user.Surname, users.Surname),
+		Phone:   utils.IfEmpty(user.Phone, users.Phone),
+		Active:  users.Active,
+		Email:   users.Email,
+		Created: users.Created,
 		Updated: dataBase.TimeNow(),
 	}
 
@@ -303,8 +306,8 @@ func (a *App) ChangeEmail(c *gin.Context) {
 // @Tags User
 // @Accept json
 // @Produce json
-// @Param body body models.EmailChangeComplete true "request requestData"
-// @Success 200 object models.EmailChangeResponse
+// @Param body body requestData.ChangeEmailComplete true "request requestData"
+// @Success 200 object responses.ChangeEmail
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 500
@@ -312,16 +315,18 @@ func (a *App) ChangeEmail(c *gin.Context) {
 // @Router /user/change/email/submit [patch]
 func (a *App) ChangeEmailComplete(c *gin.Context) {
 	lang := language.LangValue(c)
-	var completeBody models.EmailChangeComplete
+	var completeBody requestData.ChangeEmailComplete
 
 	if err := c.ShouldBindJSON(&completeBody); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
 		return
 	}
 
+	tx := a.db.Begin()
+
 	code := completeBody.Code
 	var foundCode models.EmailChange
-	if err := a.db.Model(models.EmailChange{}).Where("code = ?", code).First(&foundCode).Error; err != nil {
+	if err := tx.Model(models.EmailChange{}).Where("code = ?", code).First(&foundCode).Error; err != nil {
 		a.logger.Infof("error get email change code: %v", err)
 	}
 	if foundCode.Code == 0 {
@@ -330,7 +335,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	}
 
 	var users models.User
-	if err := a.db.Model(models.User{}).Where("id = ?", foundCode.UserID).First(&users).Error; err != nil {
+	if err := tx.Model(models.User{}).Where("id = ?", foundCode.UserID).First(&users).Error; err != nil {
 		a.logger.Infof("error get user: %v", err)
 	}
 	if users.ID == 0 {
@@ -338,9 +343,17 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		return
 	}
 
-	a.db.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("email", foundCode.Email)
-	a.db.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("updated", dataBase.TimeNow())
-	a.db.Model(models.EmailChange{}).Where("code = ?", code).Delete(&foundCode)
+	if err := tx.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("email", foundCode.Email); err.Error != nil {
+		a.logger.Infof("error update email: %v", err)
+	}
+	if err := tx.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("updated", dataBase.TimeNow()); err.Error != nil {
+		a.logger.Infof("error update email: %v", err)
+	}
+	if err := tx.Model(models.EmailChange{}).Where("code = ?", code).Delete(&foundCode); err.Error != nil {
+		a.logger.Infof("error delete email change code: %v", err)
+	}
+
+	tx.Commit()
 
 	access, refresh, err := authorization.GenerateJWT(authorization.TokenData{
 		Authorized: true,
@@ -363,7 +376,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		return
 	}
 
-	response := models.EmailChangeResponse{
+	response := responses.ChangeEmail{
 		Success:      true,
 		Messages:     language.Language(lang, "email_updated"),
 		AccessToken:  access,
