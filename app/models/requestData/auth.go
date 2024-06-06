@@ -32,3 +32,33 @@ type ChangeEmail struct {
 type CheckRecoveryCode struct {
 	Code string `json:"code"`
 }
+
+type RegistrationCode struct {
+	Code string `json:"code"`
+}
+
+type SendMail struct {
+	Email string `json:"email"`
+}
+
+type RecoverySubmit struct {
+	Code     string `json:"code"`
+	Password string `json:"password"`
+}
+
+type ChangeUser struct {
+	ID      uint   `gorm:"unique" json:"id"`
+	Login   string `json:"login"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Email   string `json:"email"`
+	Phone   string `json:"phone"`
+	Role    int    `json:"role"`
+}
+
+type CategoryUpdate struct {
+	CategoryID  string `json:"category_id"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Image       string `json:"image"`
+}

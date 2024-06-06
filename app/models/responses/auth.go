@@ -36,3 +36,10 @@ type CheckRecoveryCode struct {
 	Surname string `json:"surname"`
 	Email   string `json:"email"`
 }
+
+type CodeCheck struct {
+	ID      uint   `gorm:"unique" json:"id"`
+	Name    string `json:"name"`
+	Surname string `json:"surname"`
+	Email   string `json:"email"`
+}

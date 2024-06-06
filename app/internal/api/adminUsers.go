@@ -68,7 +68,7 @@ func (a *App) Users(c *gin.Context) {
 func (a *App) ChangeUser(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	var user models.ChangeUser
+	var user requestData.ChangeUser
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {

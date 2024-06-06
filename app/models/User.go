@@ -28,16 +28,6 @@ type EmailChange struct {
 	Created string `json:"created"`
 }
 
-type ChangeUser struct {
-	ID      uint   `gorm:"unique" json:"id"`
-	Login   string `json:"login"`
-	Name    string `json:"name"`
-	Surname string `json:"surname"`
-	Email   string `json:"email"`
-	Phone   string `json:"phone"`
-	Role    int    `json:"role"`
-}
-
 type UserPass struct {
 	UserId  uint   `gorm:"unique" json:"user_id"`
 	Pass    string `json:"pass"`
