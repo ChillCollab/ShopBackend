@@ -94,7 +94,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CategoryDeleteBody"
+                            "$ref": "#/definitions/requestData.CategoryDelete"
                         }
                     }
                 ],
@@ -246,7 +246,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.CategoryUpdateBody"
+                            "$ref": "#/definitions/requestData.CategoryUpdate"
                         }
                     }
                 ],
@@ -300,7 +300,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.ChangeUser"
+                            "$ref": "#/definitions/requestData.ChangeUser"
                         }
                     }
                 ],
@@ -533,6 +533,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/auth/login": {
+            "post": {
+                "description": "Endpoint to login into account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login into account",
+                "parameters": [
+                    {
+                        "description": "request requestData",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestData.Login"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.AuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/logout": {
             "post": {
                 "description": "Endpoint to logout from account",
@@ -591,7 +637,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.SendMail"
+                            "$ref": "#/definitions/requestData.SendMail"
                         }
                     }
                 ],
@@ -701,7 +747,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RecoverySubmit"
+                            "$ref": "#/definitions/requestData.RecoverySubmit"
                         }
                     }
                 ],
@@ -854,7 +900,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.RegistrationCodeBody"
+                            "$ref": "#/definitions/requestData.RegistrationCode"
                         }
                     }
                 ],
@@ -862,7 +908,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.CodeCheckResponse"
+                            "$ref": "#/definitions/responses.CodeCheck"
                         }
                     },
                     "400": {
@@ -1078,7 +1124,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.EmailChangeComplete"
+                            "$ref": "#/definitions/requestData.ChangeEmailComplete"
                         }
                     }
                 ],
@@ -1086,7 +1132,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.EmailChangeResponse"
+                            "$ref": "#/definitions/responses.ChangeEmail"
                         }
                     },
                     "400": {
@@ -1258,102 +1304,6 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.CategoryDeleteBody": {
-            "type": "object",
-            "properties": {
-                "category_id": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "models.CategoryUpdateBody": {
-            "type": "object",
-            "properties": {
-                "category_id": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "image": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.ChangeUser": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "login": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "phone": {
-                    "type": "string"
-                },
-                "role": {
-                    "type": "integer"
-                },
-                "surname": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.CodeCheckResponse": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "surname": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.EmailChangeComplete": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "integer"
-                }
-            }
-        },
-        "models.EmailChangeResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "messages": {
-                    "type": "string"
-                },
-                "refresh_token": {
-                    "type": "string"
-                },
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
         "models.ErrorResponse": {
             "type": "object",
             "properties": {
@@ -1365,33 +1315,6 @@ const docTemplate = `{
                 },
                 "success": {
                     "type": "boolean"
-                }
-            }
-        },
-        "models.RecoverySubmit": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.RegistrationCodeBody": {
-            "type": "object",
-            "properties": {
-                "code": {
-                    "type": "string"
-                }
-            }
-        },
-        "models.SendMail": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
                 }
             }
         },
@@ -1458,11 +1381,47 @@ const docTemplate = `{
                 }
             }
         },
+        "requestData.CategoryDelete": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "requestData.CategoryUpdate": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "image": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
         "requestData.ChangeEmail": {
             "type": "object",
             "properties": {
                 "email": {
                     "type": "string"
+                }
+            }
+        },
+        "requestData.ChangeEmailComplete": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
                 }
             }
         },
@@ -1473,6 +1432,32 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "old_password": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestData.ChangeUser": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "login": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "integer"
+                },
+                "surname": {
                     "type": "string"
                 }
             }
@@ -1516,6 +1501,28 @@ const docTemplate = `{
                 }
             }
         },
+        "requestData.Login": {
+            "type": "object",
+            "properties": {
+                "login": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestData.RecoverySubmit": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
         "requestData.Refresh": {
             "type": "object",
             "properties": {
@@ -1541,7 +1548,23 @@ const docTemplate = `{
                 }
             }
         },
+        "requestData.RegistrationCode": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
         "requestData.Send": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                }
+            }
+        },
+        "requestData.SendMail": {
             "type": "object",
             "properties": {
                 "email": {
@@ -1557,6 +1580,23 @@ const docTemplate = `{
                     "items": {
                         "type": "integer"
                     }
+                }
+            }
+        },
+        "responses.AuthResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "alive": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/responses.UserInfo"
                 }
             }
         },
@@ -1586,7 +1626,41 @@ const docTemplate = `{
                 }
             }
         },
+        "responses.ChangeEmail": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "messages": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
         "responses.CheckRecoveryCode": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "surname": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.CodeCheck": {
             "type": "object",
             "properties": {
                 "email": {

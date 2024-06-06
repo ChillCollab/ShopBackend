@@ -173,7 +173,7 @@ func (a *App) GetCategoryList(c *gin.Context) {
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Param body body models.CategoryUpdateBody true "request requestData"
+// @Param body body requestData.CategoryUpdate true "request requestData"
 // @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
@@ -244,7 +244,7 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 // @Tags Categories
 // @Accept json
 // @Produce json
-// @Param body body models.CategoryDeleteBody true "request requestData"
+// @Param body body requestData.CategoryDelete true "request requestData"
 // @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
