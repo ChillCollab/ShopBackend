@@ -5,23 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: refactoring user.go | User handler">
-      <change afterPath="$PROJECT_DIR$/app/internal/api/adminActions.go" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/internal/dataBase/admin.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/docs/docs.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/docs/docs.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/docs/swagger.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/docs/swagger.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/docs/swagger.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/app/docs/swagger.yaml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/adminCategories.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/adminCategories.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/adminUsers.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/adminUsers.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/api.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/api.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/internal/api/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/auth.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/user.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/user.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/dbConfig.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/dbConfig.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/errorCodes/adminErrors.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/errorCodes/adminErrors.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/languages/en.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/languages/en.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/languages/ru.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/languages/ru.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/logs/errors.log" beforeDir="false" afterPath="$PROJECT_DIR$/app/logs/errors.log" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/System.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/System.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

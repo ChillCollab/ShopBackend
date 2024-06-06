@@ -68,6 +68,14 @@ func (a *App) Login(c *gin.Context) {
 			http.StatusUnauthorized,
 			models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorcodes.Unauthorized),
 		)
+		if userInfo.RoleId > 0 {
+			a.db.AttachAction(models.ActionLogs{
+				Action:  "Try to login with incorrect password",
+				Login:   user.Login,
+				Ip:      c.ClientIP(),
+				Created: dataBase.TimeNow(),
+			})
+		}
 		return
 	}
 
