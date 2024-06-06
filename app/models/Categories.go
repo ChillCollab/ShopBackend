@@ -25,14 +25,3 @@ type CategoryImage struct {
 type CategoryInfoByIdBody struct {
 	CategoryID string `json:"category_id"`
 }
-
-type CategoryUpdateBody struct {
-	CategoryID  string `json:"category_id"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-	Image       string `json:"image"`
-}
-
-type CategoryDeleteBody struct {
-	CategoryID []string `json:"category_id"`
-}

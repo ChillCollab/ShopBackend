@@ -28,7 +28,6 @@ import (
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Router /auth/login [post]
-
 func (a *App) Login(c *gin.Context) {
 	var user requestData.Login
 
@@ -531,8 +530,8 @@ func (a *App) Logout(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.RegistrationCodeBody true "request requestData"
-// @Success 200 object models.CodeCheckResponse
+// @Param body body requestData.RegistrationCode true "request requestData"
+// @Success 200 object responses.CodeCheck
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
@@ -541,7 +540,7 @@ func (a *App) Logout(c *gin.Context) {
 // @Router /auth/register/check [post]
 func (a *App) CheckRegistrationCode(c *gin.Context) {
 	lang := language.LangValue(c)
-	var code models.RegistrationCodeBody
+	var code requestData.RegistrationCode
 
 	if err := c.ShouldBindJSON(&code); err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorcodes.ParsingError))
@@ -585,7 +584,7 @@ func (a *App) CheckRegistrationCode(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.CodeCheckResponse{
+	c.JSON(http.StatusOK, responses.CodeCheck{
 		ID:      user.ID,
 		Name:    user.Name,
 		Surname: user.Surname,
@@ -656,7 +655,7 @@ func (a *App) CheckRecoveryCode(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.SendMail true "request requestData"
+// @Param body body requestData.SendMail true "request requestData"
 // @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
@@ -664,7 +663,7 @@ func (a *App) CheckRecoveryCode(c *gin.Context) {
 // @Router /auth/recovery [post]
 func (a *App) Recovery(c *gin.Context) {
 	lang := language.LangValue(c)
-	var user models.SendMail
+	var user requestData.SendMail
 
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
@@ -730,7 +729,7 @@ func (a *App) Recovery(c *gin.Context) {
 // @Tags Auth
 // @Accept json
 // @Produce json
-// @Param body body models.RecoverySubmit true "request requestData"
+// @Param body body requestData.RecoverySubmit true "request requestData"
 // @Success 200 object models.SuccessResponse
 // @Failure 400 object models.ErrorResponse
 // @Failure 401 object models.ErrorResponse
@@ -739,7 +738,7 @@ func (a *App) Recovery(c *gin.Context) {
 // @Router /auth/recovery/submit [post]
 func (a *App) RecoverySubmit(c *gin.Context) {
 	lang := language.LangValue(c)
-	var recoveryBody models.RecoverySubmit
+	var recoveryBody requestData.RecoverySubmit
 
 	err := c.ShouldBindJSON(&recoveryBody)
 	if err != nil {

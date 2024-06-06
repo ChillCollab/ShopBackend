@@ -183,7 +183,7 @@ func (a *App) GetCategoryList(c *gin.Context) {
 func (a *App) CategoryUpdate(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	var categoryBody models.CategoryUpdateBody
+	var categoryBody requestData.CategoryUpdate
 	rawData, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
@@ -254,7 +254,7 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 func (a *App) DeleteCategory(c *gin.Context) {
 	lang := language.LangValue(c)
 
-	var categoryBody models.CategoryDeleteBody
+	var categoryBody requestData.CategoryDelete
 	rawData, err := c.GetRawData()
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))

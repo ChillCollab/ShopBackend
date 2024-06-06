@@ -28,25 +28,10 @@ type TokenData struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-type SendMail struct {
-	Email string `json:"email"`
-}
-
 type Activate struct {
 	Code     string `json:"code"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
-}
-
-type RegistrationCodeBody struct {
-	Code string `json:"code"`
-}
-
-type CodeCheckResponse struct {
-	ID      uint   `gorm:"unique" json:"id"`
-	Name    string `json:"name"`
-	Surname string `json:"surname"`
-	Email   string `json:"email"`
 }
 
 type UserLogin struct {
@@ -64,9 +49,4 @@ type RegToken struct {
 type RejectedToken struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
-}
-
-type RecoverySubmit struct {
-	Code     string `json:"code"`
-	Password string `json:"password"`
 }

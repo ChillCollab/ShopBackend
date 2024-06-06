@@ -1,5 +1,7 @@
 .idea
-/.idea
+./.idea
 .env
 backend
 backend.exe
+idea
+
