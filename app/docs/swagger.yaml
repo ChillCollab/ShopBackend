@@ -1,66 +1,4 @@
 definitions:
-  models.CategoryDeleteBody:
-    properties:
-      category_id:
-        items:
-          type: string
-        type: array
-    type: object
-  models.CategoryUpdateBody:
-    properties:
-      category_id:
-        type: string
-      description:
-        type: string
-      image:
-        type: string
-      name:
-        type: string
-    type: object
-  models.ChangeUser:
-    properties:
-      email:
-        type: string
-      id:
-        type: integer
-      login:
-        type: string
-      name:
-        type: string
-      phone:
-        type: string
-      role:
-        type: integer
-      surname:
-        type: string
-    type: object
-  models.CodeCheckResponse:
-    properties:
-      email:
-        type: string
-      id:
-        type: integer
-      name:
-        type: string
-      surname:
-        type: string
-    type: object
-  models.EmailChangeComplete:
-    properties:
-      code:
-        type: integer
-    type: object
-  models.EmailChangeResponse:
-    properties:
-      access_token:
-        type: string
-      messages:
-        type: string
-      refresh_token:
-        type: string
-      success:
-        type: boolean
-    type: object
   models.ErrorResponse:
     properties:
       code:
@@ -69,23 +7,6 @@ definitions:
         type: string
       success:
         type: boolean
-    type: object
-  models.RecoverySubmit:
-    properties:
-      code:
-        type: string
-      password:
-        type: string
-    type: object
-  models.RegistrationCodeBody:
-    properties:
-      code:
-        type: string
-    type: object
-  models.SendMail:
-    properties:
-      email:
-        type: string
     type: object
   models.SuccessResponse:
     properties:
@@ -128,16 +49,56 @@ definitions:
       password:
         type: string
     type: object
+  requestData.CategoryDelete:
+    properties:
+      category_id:
+        items:
+          type: string
+        type: array
+    type: object
+  requestData.CategoryUpdate:
+    properties:
+      category_id:
+        type: string
+      description:
+        type: string
+      image:
+        type: string
+      name:
+        type: string
+    type: object
   requestData.ChangeEmail:
     properties:
       email:
         type: string
+    type: object
+  requestData.ChangeEmailComplete:
+    properties:
+      code:
+        type: integer
     type: object
   requestData.ChangePassword:
     properties:
       new_password:
         type: string
       old_password:
+        type: string
+    type: object
+  requestData.ChangeUser:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      login:
+        type: string
+      name:
+        type: string
+      phone:
+        type: string
+      role:
+        type: integer
+      surname:
         type: string
     type: object
   requestData.ChangeUserInfo:
@@ -165,6 +126,20 @@ definitions:
       name:
         type: string
     type: object
+  requestData.Login:
+    properties:
+      login:
+        type: string
+      password:
+        type: string
+    type: object
+  requestData.RecoverySubmit:
+    properties:
+      code:
+        type: string
+      password:
+        type: string
+    type: object
   requestData.Refresh:
     properties:
       token:
@@ -181,7 +156,17 @@ definitions:
       surname:
         type: string
     type: object
+  requestData.RegistrationCode:
+    properties:
+      code:
+        type: string
+    type: object
   requestData.Send:
+    properties:
+      email:
+        type: string
+    type: object
+  requestData.SendMail:
     properties:
       email:
         type: string
@@ -192,6 +177,17 @@ definitions:
         items:
           type: integer
         type: array
+    type: object
+  responses.AuthResponse:
+    properties:
+      access_token:
+        type: string
+      alive:
+        type: integer
+      refresh_token:
+        type: string
+      user:
+        $ref: '#/definitions/responses.UserInfo'
     type: object
   responses.CategoryInfo:
     properties:
@@ -210,7 +206,29 @@ definitions:
       updated:
         type: string
     type: object
+  responses.ChangeEmail:
+    properties:
+      access_token:
+        type: string
+      messages:
+        type: string
+      refresh_token:
+        type: string
+      success:
+        type: boolean
+    type: object
   responses.CheckRecoveryCode:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      surname:
+        type: string
+    type: object
+  responses.CodeCheck:
     properties:
       email:
         type: string
@@ -306,7 +324,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.CategoryDeleteBody'
+          $ref: '#/definitions/requestData.CategoryDelete'
       produces:
       - application/json
       responses:
@@ -402,7 +420,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.CategoryUpdateBody'
+          $ref: '#/definitions/requestData.CategoryUpdate'
       produces:
       - application/json
       responses:
@@ -436,7 +454,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.ChangeUser'
+          $ref: '#/definitions/requestData.ChangeUser'
       produces:
       - application/json
       responses:
@@ -590,6 +608,36 @@ paths:
       summary: Send register email
       tags:
       - Auth
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Endpoint to login into account
+      parameters:
+      - description: request requestData
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/requestData.Login'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.AuthResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+      summary: Login into account
+      tags:
+      - Auth
   /auth/logout:
     post:
       consumes:
@@ -626,7 +674,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.SendMail'
+          $ref: '#/definitions/requestData.SendMail'
       produces:
       - application/json
       responses:
@@ -699,7 +747,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.RecoverySubmit'
+          $ref: '#/definitions/requestData.RecoverySubmit'
       produces:
       - application/json
       responses:
@@ -799,14 +847,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.RegistrationCodeBody'
+          $ref: '#/definitions/requestData.RegistrationCode'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.CodeCheckResponse'
+            $ref: '#/definitions/responses.CodeCheck'
         "400":
           description: Bad Request
           schema:
@@ -940,14 +988,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/models.EmailChangeComplete'
+          $ref: '#/definitions/requestData.ChangeEmailComplete'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.EmailChangeResponse'
+            $ref: '#/definitions/responses.ChangeEmail'
         "400":
           description: Bad Request
           schema:

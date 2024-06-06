@@ -58,7 +58,7 @@ func (a *App) Users(c *gin.Context) {
 // @Tags Admin
 // @Accept json
 // @Produce json
-// @Param body body models.ChangeUser true "request requestData"
+// @Param body body requestData.ChangeUser true "request requestData"
 // @Success 200 object models.SuccessResponse
 // @Failure 401 object models.ErrorResponse
 // @Failure 403 object models.ErrorResponse
