@@ -1,4 +1,15 @@
 definitions:
+  models.ActionLogs:
+    properties:
+      action:
+        type: string
+      created:
+        type: string
+      ip:
+        type: string
+      login:
+        type: string
+    type: object
   models.ErrorResponse:
     properties:
       code:
@@ -279,6 +290,33 @@ definitions:
 info:
   contact: {}
 paths:
+  /admin/actions/list:
+    get:
+      description: Endpoint to get actions log
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.ActionLogs'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/models.ErrorResponse'
+        "500":
+          description: Internal Server Error
+      security:
+      - ApiKeyAuth: []
+      summary: Get action logs
+      tags:
+      - Actions
   /admin/categories/create:
     post:
       consumes:

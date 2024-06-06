@@ -54,6 +54,7 @@ func InitDB(logger logger.Logger) (*Database, error) {
 		&models.CategoryDescription{},
 		&models.CategoryImage{},
 		&models.RejectedToken{},
+		&models.ActionLogs{},
 	); err != nil {
 		return nil, err
 	}

@@ -127,6 +127,12 @@ func (a *App) ChangePassword(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "password_updated"), 0))
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Change password",
+		Login:   fullUserInfo.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
 
 // ChangeOwnData изменить данные пользователя
@@ -216,6 +222,13 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "user_data_updated"), 0))
 
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Change personal data",
+		Login:   users.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
+
 }
 
 // ChangeEmail изменить email пользователя
@@ -303,6 +316,13 @@ func (a *App) ChangeEmail(c *gin.Context) {
 	}()
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "code_was_sent")+user.Email, 0))
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Try to change email",
+		Login:   user.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
 
 // ChangeEmailComplete Поздтверждение смены email
@@ -389,6 +409,13 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, response)
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Change email complete",
+		Login:   users.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
 
 // UploadAvatar загрузка аватара для пользователя

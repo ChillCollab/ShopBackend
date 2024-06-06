@@ -6,6 +6,7 @@ import (
 	"backend/pkg/authorization"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
@@ -72,6 +73,21 @@ func (a *App) CreateCategory(c *gin.Context) {
 	a.db.Model(models.CategoryImage{}).Create(&categoryImage)
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "category_created"), 0))
+
+	// Attach action
+	tokenData := authorization.JwtParse(c.GetHeader("Authorization"))
+	fullUserInfo, errInfo := a.db.UserInfo(tokenData.Email, tokenData.Email)
+	if errInfo != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		return
+	}
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Create category: " + category.Name,
+		Login:   fullUserInfo.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
 
 // @Summary Get category info by id
@@ -237,6 +253,21 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 	a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryBody.CategoryID).Updates(&newCategoryImage)
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "category_updated"), 0))
+
+	// Attach action
+	tokenData := authorization.JwtParse(c.GetHeader("Authorization"))
+	fullUserInfo, errInfo := a.db.UserInfo(tokenData.Email, tokenData.Email)
+	if errInfo != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		return
+	}
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Update category: " + foundCategory.Name,
+		Login:   fullUserInfo.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
 
 // @Summary Delete category
@@ -265,6 +296,24 @@ func (a *App) DeleteCategory(c *gin.Context) {
 		return
 	}
 
+	// Get categories
+	var foundCategories []models.Category
+	if err := a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).Find(&foundCategories); err != nil {
+		a.logger.Errorf("error get category: %v", err)
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "category_not_found"), errorCodes.CategoryNotFound))
+		return
+	}
+
+	var categoryNames []string
+	for _, category := range foundCategories {
+		categoryNames = append(categoryNames, category.Name)
+	}
+
+	// Delete category
+	a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).Delete(&models.Category{})
+	a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryBody.CategoryID).Delete(&models.CategoryDescription{})
+	a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryBody.CategoryID).Delete(&models.CategoryImage{})
+
 	for _, categoryId := range categoryBody.CategoryID {
 		a.db.Model(&models.Category{}).Where("category_id = ?", categoryId).Delete(&models.Category{})
 		a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryId).Delete(&models.CategoryDescription{})
@@ -272,4 +321,19 @@ func (a *App) DeleteCategory(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "category_deleted"), 0))
+
+	// Attach action
+	tokenData := authorization.JwtParse(c.GetHeader("Authorization"))
+	fullUserInfo, errInfo := a.db.UserInfo(tokenData.Email, tokenData.Email)
+	if errInfo != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		return
+	}
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Delete categories: " + strings.Join(categoryNames, ", "),
+		Login:   fullUserInfo.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }

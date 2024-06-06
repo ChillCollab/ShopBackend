@@ -106,6 +106,15 @@ func (a *App) Login(c *gin.Context) {
 	authResponse.Alive = alive
 
 	c.JSON(http.StatusOK, authResponse)
+
+	if userInfo.RoleId > 0 {
+		a.db.AttachAction(models.ActionLogs{
+			Action:  "Login in to account",
+			Login:   user.Login,
+			Ip:      c.ClientIP(),
+			Created: dataBase.TimeNow(),
+		})
+	}
 }
 
 // @Summary Register account
@@ -383,6 +392,13 @@ func (a *App) Activate(c *gin.Context) {
 	tx.Commit()
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "account")+foundUsers.Email+" "+language.Language(lang, "success_activate"), 0))
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Activate account by registration code",
+		Login:   foundUsers.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
 
 // @Summary Get new access token
@@ -710,6 +726,13 @@ func (a *App) Recovery(c *gin.Context) {
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, "Email sent to "+foundUser.Email, 0))
 
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Recovery password",
+		Login:   foundUser.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
+
 	// Send email
 	go func(code string) {
 		utils.Send(
@@ -808,4 +831,11 @@ func (a *App) RecoverySubmit(c *gin.Context) {
 	tx.Commit()
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "password_reseted"), 0))
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Submit recovery password",
+		Login:   foundUser.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
