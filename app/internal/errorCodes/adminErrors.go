@@ -10,4 +10,5 @@ const (
 	CategoriesListEmpty
 	AvatarSizelimit
 	DeleteAvatarError
+	ActionLogsEmpty
 )

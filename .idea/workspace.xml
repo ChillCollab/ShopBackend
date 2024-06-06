@@ -4,21 +4,10 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: remove panic from smtp util">
-      <change afterPath="$PROJECT_DIR$/app/9cLUQyG6-sk.jpg" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/app/models/requestData/admin.go" afterDir="false" />
+    <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: refactoring user.go | User handler">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/app/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/adminCategories.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/adminCategories.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/adminUsers.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/adminUsers.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/internal/api/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/auth.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/user.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/user.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/userAvatar.go" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/Auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/Auth.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/Categories.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/Categories.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/User.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/User.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/requestData/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/requestData/auth.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/models/responses/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/responses/auth.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/logs/errors.log" beforeDir="false" afterPath="$PROJECT_DIR$/app/logs/errors.log" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -67,7 +56,7 @@
     "RunOnceActivity.go.migrated.go.modules.settings": "true",
     "RunOnceActivity.go.modules.automatic.dependencies.download": "true",
     "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "git-widget-placeholder": "fixModelsReqs",
+    "git-widget-placeholder": "tableLogs",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
     "last_opened_file_path": "/Users/masev1ch/GolandProjects/ShopBackend",

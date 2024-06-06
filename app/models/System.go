@@ -12,3 +12,10 @@ type Config struct {
 	Activate bool   `json:"activate"`
 	Updated  string `json:"updated"`
 }
+
+type ActionLogs struct {
+	Login   string `json:"login"`
+	Action  string `json:"action"`
+	Ip      string `json:"ip"`
+	Created string `json:"created"`
+}

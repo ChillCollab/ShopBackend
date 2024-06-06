@@ -59,5 +59,6 @@
     "category_deleted": "Categories was deleted",
     "categories_list_empty": "Categories list is empty",
     "unsupported_file_extension": "Unsupported file format. Only JPG, JPEG, and PNG files are allowed",
-    "too_big_avatar_size": "File size exceeds the maximum allowed size of 3MB"
+    "too_big_avatar_size": "File size exceeds the maximum allowed size of 3MB",
+    "action_log_empty": "Action log is empty"
 }

@@ -1,8 +1,10 @@
 package api
 
 import (
+	"backend/internal/dataBase"
 	"backend/internal/roles"
 	"backend/models/requestData"
+	"backend/pkg/authorization"
 	"backend/pkg/images"
 	"net/http"
 	"os"
@@ -161,7 +163,23 @@ func (a *App) ChangeUser(c *gin.Context) {
 		return
 	}
 
+	// Response
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "user_updated"), 0))
+
+	// Attach action
+	tokenData := authorization.JwtParse(c.GetHeader("Authorization"))
+	fullUserInfo, errInfo := a.db.UserInfo(tokenData.Email, tokenData.Email)
+	if errInfo != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		return
+	}
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Update user: " + user.Login,
+		Login:   fullUserInfo.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
 
 // DeleteUsers удаление пользователя
@@ -181,6 +199,15 @@ func (a *App) DeleteUsers(c *gin.Context) {
 	lang := language.LangValue(c)
 
 	var usersArray requestData.UsersArray
+
+	tokenData := authorization.JwtParse(c.GetHeader("Authorization"))
+
+	user, errInfo := a.db.UserInfo(tokenData.Email, tokenData.Email)
+	if errInfo != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		return
+	}
+
 	err := c.ShouldBindJSON(&usersArray)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
@@ -201,6 +228,11 @@ func (a *App) DeleteUsers(c *gin.Context) {
 	if found != nil {
 		a.logger.Errorf("error find users: %v", err)
 		return
+	}
+
+	var userLogins []string
+	for _, usrData := range users {
+		userLogins = append(userLogins, usrData.Login)
 	}
 
 	if len(users) == 0 {
@@ -242,4 +274,11 @@ func (a *App) DeleteUsers(c *gin.Context) {
 			0,
 		),
 	)
+
+	a.db.AttachAction(models.ActionLogs{
+		Action:  "Delete users " + strings.Join(userLogins, ", "),
+		Login:   user.Login,
+		Ip:      c.ClientIP(),
+		Created: dataBase.TimeNow(),
+	})
 }
