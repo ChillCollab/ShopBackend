@@ -29,7 +29,7 @@
     "email_sent": "Email sent to address: ",
     "email_error": "Errors with email sending",
     "password_null": "Password can't be empty",
-    "password_should_by_include_digits": "Password should by include digits and symbols",
+    "password_should_be_include_digits": "Password should by include digits and symbols",
     "activation_code_not_found": "Activation code not found",
     "register_code_not_found": "Registration code not found",
     "activation_code_expired": "Your activaton code was expired! Request a new activation code.",

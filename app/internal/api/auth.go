@@ -333,7 +333,7 @@ func (a *App) Activate(c *gin.Context) {
 	}
 	digit, symbols := utils.PasswordChecker(user.Password)
 	if !digit || !symbols {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_be_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
@@ -782,7 +782,7 @@ func (a *App) RecoverySubmit(c *gin.Context) {
 	}
 	digit, symbols := utils.PasswordChecker(recoveryBody.Password)
 	if !digit || !symbols {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_by_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_be_include_digits"), errorcodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
