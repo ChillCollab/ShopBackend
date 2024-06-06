@@ -113,7 +113,7 @@ func (a *App) ChangePassword(c *gin.Context) {
 
 	digits, symbol := utils.PasswordChecker(passwordData.NewPassword)
 	if !digits && !symbol {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_by_include_symbols"), errorCodes.PasswordShouldByIncludeSymbols))
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "password_should_be_include_digits"), errorCodes.PasswordShouldByIncludeSymbols))
 		return
 	}
 
