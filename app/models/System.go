@@ -14,6 +14,7 @@ type Config struct {
 }
 
 type ActionLogs struct {
+	Id      int    `gorm:"unique" json:"id"`
 	Login   string `json:"login"`
 	Action  string `json:"action"`
 	Ip      string `json:"ip"`
