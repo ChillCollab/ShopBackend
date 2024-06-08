@@ -5,9 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: refactoring user.go | User handler">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/dbConfig.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/dbConfig.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/logs/errors.log" beforeDir="false" afterPath="$PROJECT_DIR$/app/logs/errors.log" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/app/.gitignore" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
