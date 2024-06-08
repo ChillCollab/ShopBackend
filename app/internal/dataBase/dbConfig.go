@@ -114,7 +114,7 @@ func createConfig(db *gorm.DB) {
 
 func createDefaultUserIfNotExists(db *gorm.DB) error {
 	var count int64
-	if err := db.Model(&models.User{}).Where("login = ?", "universal").Count(&count).Error; err != nil {
+	if err := db.Model(&models.User{}).Where("login = ? OR email = ?", "universal", "uni@example.com").Count(&count).Error; err != nil {
 		return err
 	}
 	if count == 0 {
