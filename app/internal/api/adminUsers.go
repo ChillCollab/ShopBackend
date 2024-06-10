@@ -199,8 +199,8 @@ func (a *App) DeleteUsers(c *gin.Context) {
 	lang := language.LangValue(c)
 
 	var usersArray requestData.UsersArray
-
-	tokenData := authorization.JwtParse(c.GetHeader("Authorization"))
+	token := authorization.GetToken(c)
+	tokenData := authorization.JwtParse(token)
 
 	user, errInfo := a.db.UserInfo(tokenData.Email, tokenData.Email)
 	if errInfo != nil {
