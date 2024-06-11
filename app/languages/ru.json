@@ -59,5 +59,12 @@
     "categories_list_empty": "Список категорий пуст",
     "unsupported_file_extension": "Неподдерживаемый тип файла. Только JPG, JPEG и PNG файлы поддерживаются",
     "too_big_avatar_size": "Размер файла превышает максимально допустимый размер 3МБ",
-    "action_log_empty": "Журнал активности пуст"
+    "action_log_empty": "Журнал активности пуст",
+    "admin_panel_password_recovery": "Восстановление пароля администратора",
+    "recovery_link_text": "Ваша ссылка для восстановления пароля:",
+    "email": "Email:",
+    "login": "Логин:",
+    "name": "Имя:",
+    "surname": "Фамилия:",
+    "created": "Создано:"
 }
