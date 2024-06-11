@@ -3,6 +3,7 @@ package api
 import (
 	"backend/pkg/authorization"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -743,15 +744,28 @@ func (a *App) Recovery(c *gin.Context) {
 
 	// Send email
 	go func(code string) {
-		utils.Send(
-			foundUser.Email,
-			"Admin Panel password recovery!", "Your link for continue is:  "+os.Getenv("DOMAIN")+"/recovery/submit/"+code+
-				"\n\nEmail: "+user.Email+
-				"\nLogin: "+foundUser.Name+
-				"\nName: "+foundUser.Name+
-				"\nSurname: "+foundUser.Surname+
-				"\nCreated: "+foundUser.Created,
-			a.db.DB)
+		recoverySubject := language.Language(lang, "admin_panel_password_recovery")
+		recoveryLinkText := language.Language(lang, "recovery_link_text")
+		emailText := language.Language(lang, "email")
+		loginText := language.Language(lang, "login")
+		nameText := language.Language(lang, "name")
+		surnameText := language.Language(lang, "surname")
+		createdText := language.Language(lang, "created")
+
+		recoveryLink := fmt.Sprintf("%s/recovery/submit/%s", os.Getenv("DOMAIN"), code)
+		emailBody := fmt.Sprintf("%s: %s\n%s %s\n%s %s\n%s %s\n%s %s\n%s %s",
+			recoveryLinkText, recoveryLink, emailText, user.Email, loginText, foundUser.Name, nameText, foundUser.Name, surnameText, foundUser.Surname, createdText, foundUser.Created)
+
+		utils.Send(foundUser.Email, recoverySubject, emailBody, a.db.DB)
+		//utils.Send(
+		//	foundUser.Email,
+		//	"Admin Panel password recovery!", "Your link for continue is:  "+os.Getenv("DOMAIN")+"/recovery/submit/"+code+
+		//		"\n\nEmail: "+user.Email+
+		//		"\nLogin: "+foundUser.Name+
+		//		"\nName: "+foundUser.Name+
+		//		"\nSurname: "+foundUser.Surname+
+		//		"\nCreated: "+foundUser.Created,
+		//	a.db.DB)
 	}(code)
 }
 

@@ -60,5 +60,12 @@
     "categories_list_empty": "Categories list is empty",
     "unsupported_file_extension": "Unsupported file format. Only JPG, JPEG, and PNG files are allowed",
     "too_big_avatar_size": "File size exceeds the maximum allowed size of 3MB",
-    "action_log_empty": "Action log is empty"
+    "action_log_empty": "Action log is empty",
+    "admin_panel_password_recovery": "Admin Panel password recovery!",
+    "recovery_link_text": "Your link for continue is:",
+    "email": "Email:",
+    "login": "Login:",
+    "name": "Name:",
+    "surname": "Surname:",
+    "created": "Created:"
 }
