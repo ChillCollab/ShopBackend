@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"backend/internal/dataBase"
@@ -200,12 +201,12 @@ func (a *App) Register(c *gin.Context) {
 	c.JSON(http.StatusOK, responses.RegisterResponse{
 		Error: false,
 		User: responses.UserInfo{
-			Login:   completeUser.Login,
-			Name:    completeUser.Name,
-			Surname: completeUser.Surname,
-			Email:   completeUser.Email,
+			Login:   strings.ToLower(completeUser.Login),
+			Name:    strings.ToLower(completeUser.Name),
+			Surname: strings.ToLower(completeUser.Surname),
+			Email:   strings.ToLower(completeUser.Email),
 			Role:    0,
-			Phone:   completeUser.Phone,
+			Phone:   strings.ToLower(completeUser.Phone),
 			Created: completeUser.Created,
 			Updated: completeUser.Updated,
 		},
