@@ -75,16 +75,9 @@ func (a *App) CreateCategory(c *gin.Context) {
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "category_created"), 0))
 
 	// Attach action
-	tokenData := authorization.JwtParse(c.GetHeader("Authorization"))
-	fullUserInfo, errInfo := a.db.UserInfo(tokenData.Email, tokenData.Email)
-	if errInfo != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-		return
-	}
-
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Create category: " + category.Name,
-		Login:   fullUserInfo.Login,
+		Login:   foundUser.Login,
 		Ip:      c.ClientIP(),
 		Created: dataBase.TimeNow(),
 	})

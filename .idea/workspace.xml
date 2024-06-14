@@ -4,9 +4,7 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: refactoring user.go | User handler">
-      <change beforePath="$PROJECT_DIR$/app/internal/api/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/auth.go" afterDir="false" />
-    </list>
+    <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: fix create category bug" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -54,7 +52,7 @@
     "RunOnceActivity.go.migrated.go.modules.settings": "true",
     "RunOnceActivity.go.modules.automatic.dependencies.download": "true",
     "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "git-widget-placeholder": "dev",
+    "git-widget-placeholder": "fixCreateCategory",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
     "last_opened_file_path": "/Users/masev1ch/GolandProjects/ShopBackend",
@@ -141,7 +139,8 @@
     <MESSAGE value="fix: refact adminCategories.go" />
     <MESSAGE value="fix: almost all fixed" />
     <MESSAGE value="fix: remove panic from smtp util" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix: remove panic from smtp util" />
+    <MESSAGE value="fix: fix create category bug" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix: fix create category bug" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>
