@@ -72,6 +72,7 @@ func InitDB(logger logger.Logger) (*Database, error) {
 	}, nil
 }
 
+// Нет проверок ошибок
 func createConfig(db *gorm.DB) {
 	var count int64
 	db.Model(&models.Config{}).Where("param = ?", "smtp_host").Count(&count)

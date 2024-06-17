@@ -4,106 +4,53 @@
     <option name="autoReloadType" value="ALL" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: fix create category bug" />
+    <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: fix create category bug">
+      <change beforePath="$PROJECT_DIR$/.idea/ShopBackend.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ShopBackend.iml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/api/api.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/api.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/api/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/auth.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/config/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/config/config.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/dbConfig.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/dbConfig.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/redis.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/redis.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/users.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/users.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/pkg/authorization/jwt.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/pkg/authorization/jwt.go" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
-  <component name="FileTemplateManagerImpl">
-    <option name="RECENT_TEMPLATES">
-      <list>
-        <option value="Go File" />
-      </list>
-    </option>
-  </component>
-  <component name="GOROOT" url="file:///usr/local/go" />
+  <component name="GOROOT" url="file:///opt/homebrew/Cellar/go/1.21.6/libexec" />
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory">{
-  &quot;lastFilter&quot;: {
-    &quot;state&quot;: &quot;OPEN&quot;,
-    &quot;assignee&quot;: &quot;masya2066&quot;
-  }
-}</component>
-  <component name="GithubPullRequestsUISettings">{
-  &quot;selectedUrlAndAccountId&quot;: {
-    &quot;url&quot;: &quot;git@github.com:ChillCollab/ShopBackend.git&quot;,
-    &quot;accountId&quot;: &quot;26c3ea0b-7e34-4e46-a578-228e3c597a50&quot;
-  }
-}</component>
-  <component name="HighlightingSettingsPerFile">
-    <setting file="file:///usr/local/go/src/net/http/status.go" root0="SKIP_INSPECTION" />
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectColorInfo">{
-  &quot;associatedIndex&quot;: 3
-}</component>
-  <component name="ProjectId" id="2gHRyrLS5yY4hPMCxxe6iTZ8Mz8" />
+  <component name="ProjectId" id="2i0M5cWBp7TNdmDXtevQwwdtmNx" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
+    <option name="showMembers" value="true" />
+    <option name="sortByType" value="true" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
-    "DefaultGoTemplateProperty": "Go File",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.go.format.on.save.advertiser.fired": "true",
     "RunOnceActivity.go.formatter.settings.were.checked": "true",
     "RunOnceActivity.go.migrated.go.modules.settings": "true",
-    "RunOnceActivity.go.modules.automatic.dependencies.download": "true",
     "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
-    "git-widget-placeholder": "fixCreateCategory",
+    "RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed": "true",
+    "WebServerToolWindowFactoryState": "false",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "/Users/masev1ch/GolandProjects/ShopBackend",
-    "node.js.detected.package.eslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "settings.editor.selected.configurable": "preferences.lookFeel"
+    "last_opened_file_path": "/Users/oermoshkin",
+    "settings.editor.selected.configurable": "goland.project.structure",
+    "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="RecentsManager">
-    <key name="MoveFile.RECENT_KEYS">
-      <recent name="$PROJECT_DIR$" />
-      <recent name="$PROJECT_DIR$/docker" />
-      <recent name="$PROJECT_DIR$/app" />
-      <recent name="$PROJECT_DIR$/pkg/authorization" />
-      <recent name="$PROJECT_DIR$/pkg/utils" />
-    </key>
-  </component>
-  <component name="RunManager">
-    <configuration default="true" type="GoApplicationRunConfiguration" factoryName="Go Application">
-      <module name="shopBackend" />
-      <working_directory value="$PROJECT_DIR$" />
-      <kind value="FILE" />
-      <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$" />
-      <method v="2" />
-    </configuration>
-    <configuration default="true" type="GoTestRunConfiguration" factoryName="Go Test">
-      <module name="shopBackend" />
-      <working_directory value="$PROJECT_DIR$" />
-      <kind value="DIRECTORY" />
-      <directory value="$PROJECT_DIR$" />
-      <filePath value="$PROJECT_DIR$" />
-      <framework value="gotest" />
-      <method v="2" />
-    </configuration>
-    <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
-      <deployment type="docker-compose.yml">
-        <settings />
-      </deployment>
-      <method v="2" />
-    </configuration>
-  </component>
-  <component name="SharedIndexes">
-    <attachedChunks>
-      <set>
-        <option value="bundled-gosdk-33c477a475b1-e0158606a674-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-241.15989.157" />
-        <option value="bundled-js-predefined-1d06a55b98c1-91d5c284f522-JavaScript-GO-241.15989.157" />
-      </set>
-    </attachedChunks>
-  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
@@ -118,29 +65,6 @@
         </entry>
       </map>
     </option>
-  </component>
-  <component name="VcsManagerConfiguration">
-    <MESSAGE value="fix: fix endpoint send mail" />
-    <MESSAGE value="fix: fix endpoint Activate user" />
-    <MESSAGE value="fix: IsAuthorized to middlewares" />
-    <MESSAGE value="feat: add middlewares isAuth" />
-    <MESSAGE value="feat: add const with redis name tables" />
-    <MESSAGE value="feat: connected Refresh endpoint with redis" />
-    <MESSAGE value="fix: add err handler to create user token in base" />
-    <MESSAGE value="fix: add generator tests" />
-    <MESSAGE value="fix: fix auth endpoints" />
-    <MESSAGE value="fix: update auth methods for admin and simple users" />
-    <MESSAGE value="fix: delete unused function CheckAdmin" />
-    <MESSAGE value="fix: add gorutine to update auth tokens in redis" />
-    <MESSAGE value="feat: add docker to run application" />
-    <MESSAGE value="fix: fixed Refresh endpoint" />
-    <MESSAGE value="fix: delete logs from broker in pkg" />
-    <MESSAGE value="fix: fixed ChangeEmail endpoint" />
-    <MESSAGE value="fix: refact adminCategories.go" />
-    <MESSAGE value="fix: almost all fixed" />
-    <MESSAGE value="fix: remove panic from smtp util" />
-    <MESSAGE value="fix: fix create category bug" />
-    <option name="LAST_COMMIT_MESSAGE" value="fix: fix create category bug" />
   </component>
   <component name="VgoProject">
     <settings-migrated>true</settings-migrated>

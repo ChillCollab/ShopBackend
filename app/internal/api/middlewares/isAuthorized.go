@@ -1,15 +1,17 @@
 package middlewares
 
 import (
+	"encoding/json"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
 	"backend/models"
 	"backend/models/language"
 	"backend/pkg/authorization"
 	"backend/pkg/broker"
-	"encoding/json"
-	"github.com/gin-gonic/gin"
-	"net/http"
 )
 
 type Broker struct {
@@ -39,6 +41,7 @@ func (br *Broker) IsAuthorized(c *gin.Context) {
 	}
 	var tokens []models.RejectedToken
 	var tokenExist bool
+	//Опять непонятная история с постоянным прогоном массива в цикле
 	for _, item := range array {
 		var tok models.RejectedToken
 		er, errMarshal := json.Marshal(item)

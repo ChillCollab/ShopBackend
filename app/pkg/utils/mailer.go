@@ -1,11 +1,12 @@
 package utils
 
 import (
-	"backend/models"
-	"backend/pkg/logger"
 	"crypto/tls"
 	"regexp"
 	"strconv"
+
+	"backend/models"
+	"backend/pkg/logger"
 
 	gomail "gopkg.in/mail.v2"
 	"gorm.io/gorm"
@@ -18,6 +19,7 @@ func MailValidator(email string) bool {
 	return match
 }
 
+// Сделай себе отдельный "сервис" который будет принадлежать App
 func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 	log := logger.GetLogger()
 	if !MailValidator(recipient) {
@@ -29,6 +31,8 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 	var port models.Config
 	var email models.Config
 	var password models.Config
+
+	//Ошибки
 	db.Model(&models.Config{}).Where("param = ?", "smtp_host").Find(&host)
 	db.Model(&models.Config{}).Where("param = ?", "smtp_port").Find(&port)
 	db.Model(&models.Config{}).Where("param = ?", "smtp_email").Find(&email)
@@ -37,6 +41,7 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 	if host.Value == "" || port.Value == "" || email.Value == "" || password.Value == "" {
 		log.Error(host.Value, port.Value, email.Value, password.Value)
 		log.Error("SMTP config not found or incorrect")
+		// и пошел дальше :(
 	}
 
 	m := gomail.NewMessage()
@@ -50,6 +55,7 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 
 	prt, err := strconv.Atoi(port.Value)
 	if err != nil {
+		//Опять паника
 		panic(err)
 	}
 

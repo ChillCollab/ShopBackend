@@ -22,6 +22,7 @@ func Hash(data string) string {
 }
 
 func PasswordChecker(password string) (bool, bool) {
+	//Что-то мне подсказывает что можно это сделать иначе, например регуляркой
 	if len(password) < 8 {
 		return false, false
 	}

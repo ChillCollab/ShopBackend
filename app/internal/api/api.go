@@ -1,14 +1,16 @@
 package api
 
 import (
-	"backend/internal/api/middlewares"
 	"fmt"
 	"os"
+
+	"backend/internal/api/middlewares"
+
+	"github.com/gin-contrib/cors"
 
 	"backend/internal/dataBase"
 	"backend/pkg/broker"
 	"backend/pkg/logger"
-	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
 	swaggerfiles "github.com/swaggo/files"
@@ -23,7 +25,6 @@ type App struct {
 }
 
 func New(server *gin.Engine, dataBase *dataBase.Database, logger logger.Logger) (*App, error) {
-
 	client, errInit := broker.RedisInit()
 	if errInit != nil {
 		return nil, fmt.Errorf("broker was not connected: %v", errInit)

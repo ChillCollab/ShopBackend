@@ -22,12 +22,14 @@ func Language(lang string, key string) string {
 
 	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
+		//Отлично, лог записал, а дальше? Возможно ниже поймаешь панику
 		log.Error(err)
 	}
 
 	var data map[string]interface{}
 	err = json.Unmarshal(fileContent, &data)
 	if err != nil {
+		// Тоже самое, нет возврата, ниже поймаешь панику
 		log.Error(err)
 	}
 

@@ -1,12 +1,13 @@
 package api
 
 import (
-	"backend/models/requestData"
-	"backend/models/responses"
-	"backend/pkg/authorization"
 	"encoding/json"
 	"net/http"
 	"strings"
+
+	"backend/models/requestData"
+	"backend/models/responses"
+	"backend/pkg/authorization"
 
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
@@ -68,6 +69,7 @@ func (a *App) CreateCategory(c *gin.Context) {
 		Updated:    dataBase.TimeNow(),
 	}
 
+	//ошибки
 	a.db.Model(models.Category{}).Create(&category)
 	a.db.Model(models.CategoryDescription{}).Create(&categoryDescription)
 	a.db.Model(models.CategoryImage{}).Create(&categoryImage)
@@ -152,6 +154,7 @@ func (a *App) GetCategoryList(c *gin.Context) {
 
 	// Collecting all categories
 	var categoryList []responses.CategoryInfo
+	// И когда у тебя будет 100 категорий, ты сделаешь 200 запросов в БД
 	for _, category := range foundCategories {
 		var foundCategoryDescription models.CategoryDescription
 		var foundCategoryImage models.CategoryImage
@@ -241,6 +244,7 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 		Created:    foundCategoryImage.Created,
 		Updated:    dataBase.TimeNow(),
 	}
+	//ошибки
 	a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).Updates(&newCategory)
 	a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryBody.CategoryID).Updates(&newCategoryDescription)
 	a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryBody.CategoryID).Updates(&newCategoryImage)
@@ -302,12 +306,15 @@ func (a *App) DeleteCategory(c *gin.Context) {
 		categoryNames = append(categoryNames, category.Name)
 	}
 
+	//Обернуть в транзацкию и вынести отдельно
+	//Ошибки
 	// Delete category
 	a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).Delete(&models.Category{})
 	a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryBody.CategoryID).Delete(&models.CategoryDescription{})
 	a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryBody.CategoryID).Delete(&models.CategoryImage{})
 
 	for _, categoryId := range categoryBody.CategoryID {
+		//Ошибки
 		a.db.Model(&models.Category{}).Where("category_id = ?", categoryId).Delete(&models.Category{})
 		a.db.Model(&models.CategoryDescription{}).Where("category_id = ?", categoryId).Delete(&models.CategoryDescription{})
 		a.db.Model(&models.CategoryImage{}).Where("category_id = ?", categoryId).Delete(&models.CategoryImage{})

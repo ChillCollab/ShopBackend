@@ -21,6 +21,7 @@ func CodeGen() string {
 	bytes := make([]byte, 8)
 	_, err := rand.Read(bytes)
 	if err != nil {
+		//Шикарно)))
 		panic(err)
 	}
 
@@ -38,6 +39,7 @@ func LongCodeGen() string {
 	bytes := make([]byte, 16)
 	_, err := rand.Read(bytes)
 	if err != nil {
+		//люблю паники в коде)))
 		panic(err)
 	}
 

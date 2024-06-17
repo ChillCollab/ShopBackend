@@ -1,6 +1,8 @@
 package dataBase
 
 import (
+	"fmt"
+
 	"backend/models"
 )
 
@@ -19,16 +21,21 @@ func (db *Database) UserInfo(login interface{}, email interface{}) (models.FullU
 	return fullUserInfo, nil
 }
 
-func (db *Database) CreateUser(user models.User) (err error) {
+func (db *Database) CreateUser(user models.User) error {
+	//Делай так во всех своих функциях
 	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
-	create := tx.Create(&user)
-	if create.Error != nil {
-		tx.Rollback()
-		return create.Error
+	err := tx.Create(&user).Error
+	if err != nil {
+		return fmt.Errorf("error create user: %v", err)
 	}
 
-	tx.Commit()
-
-	return nil
+	//Нужно возвращать ошибку
+	//И если она была при возврате, нужно отработать Rollback
+	return tx.Commit().Error
 }

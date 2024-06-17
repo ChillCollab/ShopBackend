@@ -1,15 +1,15 @@
 package config
 
 import (
-	"backend/pkg/logger"
+	"fmt"
+
 	"github.com/joho/godotenv"
 )
 
 func Get() error {
-	log := logger.GetLogger()
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Error("error loading .env file: ", err)
+		return fmt.Errorf("error loading .env file: %v", err)
 	}
 
 	return nil

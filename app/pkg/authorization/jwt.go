@@ -52,6 +52,7 @@ func CheckTokenExpiration(tokenString string) bool {
 		return []byte(os.Getenv("JWT_SECRET")), nil
 	})
 	if err != nil {
+		//Хорошо бы лог добавить
 		return true
 	}
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {

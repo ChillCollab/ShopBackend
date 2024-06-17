@@ -11,6 +11,7 @@ func (db *Database) AttachAction(logs models.ActionLogs) {
 	if err := tx.Create(&logs).Error; err != nil {
 		log.Errorf("error create action log: %v", err)
 	}
+	//ошибка и откат
 	tx.Commit()
 }
 

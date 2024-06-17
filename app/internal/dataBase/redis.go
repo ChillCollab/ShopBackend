@@ -1,12 +1,13 @@
 package dataBase
 
 import (
+	"encoding/json"
+	"time"
+
 	"backend/models"
 	"backend/pkg/authorization"
 	"backend/pkg/broker"
 	"backend/pkg/logger"
-	"encoding/json"
-	"time"
 )
 
 const (
@@ -32,6 +33,8 @@ func (db *Database) RedisSyncAuth(client *broker.Client) error {
 }
 
 func (db *Database) RedisUpdateAuth(client *broker.Client) {
+	// Не совсем понятен смысл. Ты забираешь всю таблицу отозванных токенов и проверяешь каждый в
+	// цикле протух ли он. А зачем его проверять если судя по названию это отозванные токены?
 	log := logger.GetLogger().Logger
 	for {
 		var tokens []models.RejectedToken

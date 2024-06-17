@@ -1,12 +1,13 @@
 package api
 
 import (
-	"backend/pkg/authorization"
 	"encoding/json"
 	"net/http"
 	"os"
 	"strings"
 	"time"
+
+	"backend/pkg/authorization"
 
 	"backend/internal/dataBase"
 	errorcodes "backend/internal/errorCodes"
@@ -171,7 +172,10 @@ func (a *App) Register(c *gin.Context) {
 	var ifExist []models.User
 	var foundLogin []models.User
 
+	//Нет проверок на ошибки
+	// И опять же нахера массив? First.
 	a.db.Where("email = ?", user.Email).Find(&ifExist)
+	// то же самое
 	a.db.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundLogin)
 
 	if len(ifExist) > 0 {
@@ -248,6 +252,7 @@ func (a *App) Send(c *gin.Context) {
 		return
 	}
 
+	//сложновато читать твои партянки с массивами
 	var checkUser []models.RegToken
 
 	a.db.Model(&models.RegToken{}).Where("user_id = ? AND type = ?", foundUser.ID, 0).Find(&checkUser)
@@ -297,6 +302,7 @@ func (a *App) Send(c *gin.Context) {
 				"\nSurname: "+foundUser.Surname+
 				"\nCreated: "+foundUser.Created, a.db.DB) {
 			a.logger.Error("Email send error to address: " + user.Email)
+			return
 		}
 
 		a.logger.Info("Email sent to address: " + user.Email)
@@ -340,10 +346,14 @@ func (a *App) Activate(c *gin.Context) {
 
 	var activate models.RegToken
 
+	// Слищком большая функция у тебя, вынеси манипуляцию с бд куда нибудь в другое место
+	// Не правильно используешь транзакции. Смотри пример в /internal/database/users.go/CreateUsers
+
 	tx := a.db.Begin()
 	codesRes := tx.Model(&models.RegToken{}).Where("code = ?", user.Code).First(&activate)
 	if codesRes.RowsAffected <= 0 {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "activation_code_not_found"), errorcodes.ActivationCodeNotFound))
+		//Вышел, а транзакция висеть осталась
 		return
 	}
 	// Check if token is expired
@@ -354,6 +364,7 @@ func (a *App) Activate(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
+		//Опять же транзация висит
 		return
 	}
 
@@ -398,6 +409,7 @@ func (a *App) Activate(c *gin.Context) {
 		return
 	}
 
+	// Нет проверки на ошибку
 	tx.Commit()
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "account")+foundUsers.Email+" "+language.Language(lang, "success_activate"), 0))
@@ -430,6 +442,7 @@ func (a *App) Refresh(c *gin.Context) {
 		return
 	}
 
+	//Мне не нравится история что ты будешь вечно весь массив тянуть
 	array, errGet := a.broker.RedisGetArray(dataBase.RedisAuthTokens)
 	if errGet != nil {
 		return
