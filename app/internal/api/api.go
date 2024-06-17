@@ -8,6 +8,7 @@ import (
 	"backend/internal/dataBase"
 	"backend/pkg/broker"
 	"backend/pkg/logger"
+
 	"github.com/gin-contrib/cors"
 
 	"github.com/gin-gonic/gin"
@@ -118,6 +119,10 @@ func (a *App) routes() {
 			actions := admin.Group("/actions")
 			{
 				actions.GET("/list", client.IsAuthorized, middlewares.IsAdmin, a.GetActions)
+			}
+			settings := admin.Group("/settings")
+			{
+				settings.GET("/config", client.IsAuthorized, middlewares.IsAdmin, a.Settings)
 			}
 		}
 	}
