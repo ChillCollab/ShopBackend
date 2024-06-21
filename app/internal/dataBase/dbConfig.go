@@ -51,15 +51,15 @@ func InitDB(logger logger.Logger) (*Database, error) {
 		&models.RegToken{},
 		&models.EmailChange{},
 		&models.Category{},
-		&models.CategoryDescription{},
-		&models.CategoryImage{},
 		&models.RejectedToken{},
 		&models.ActionLogs{},
 	); err != nil {
 		return nil, err
 	}
 
-	createConfig(db)
+	if err := createConfig(db); err != nil {
+		return nil, err
+	}
 	errUser := createDefaultUserIfNotExists(db)
 	if errUser != nil {
 		return nil, errUser
@@ -73,50 +73,99 @@ func InitDB(logger logger.Logger) (*Database, error) {
 }
 
 // Нет проверок ошибок
-func createConfig(db *gorm.DB) {
+func createConfig(db *gorm.DB) error {
+	log := logger.GetLogger()
+
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 	var count int64
-	db.Model(&models.Config{}).Where("param = ?", "smtp_host").Count(&count)
+	if err := tx.Model(&models.Config{}).Where("param = ?", "smtp_host").Count(&count); err.Error != nil {
+		log.Error(err.Error)
+		return tx.Rollback().Error
+	}
 	if count == 0 {
-		db.Model(&models.Config{}).Create(&models.Config{
+		if err := tx.Model(&models.Config{}).Create(&models.Config{
 			Param:    "smtp_host",
 			Value:    "",
 			Activate: true,
 			Updated:  TimeNow(),
-		})
+		}); err.Error != nil {
+			log.Error(err.Error)
+			return tx.Rollback().Error
+		}
 	}
-	db.Model(&models.Config{}).Where("param = ?", "smtp_port").Count(&count)
+	if err := tx.Model(&models.Config{}).Where("param = ?", "smtp_port").Count(&count); err.Error != nil {
+		log.Error(err.Error)
+		return tx.Rollback().Error
+	}
 	if count == 0 {
-		db.Model(&models.Config{}).Create(&models.Config{
+		if err := tx.Model(&models.Config{}).Create(&models.Config{
 			Param:    "smtp_port",
 			Value:    "",
 			Activate: true,
 			Updated:  TimeNow(),
-		})
+		}); err.Error != nil {
+			log.Error(err.Error)
+			return tx.Rollback().Error
+		}
 	}
-	db.Model(&models.Config{}).Where("param = ?", "smtp_email").Count(&count)
+	if err := tx.Model(&models.Config{}).Where("param = ?", "smtp_email").Count(&count); err.Error != nil {
+		log.Error(err.Error)
+		return tx.Rollback().Error
+	}
 	if count == 0 {
-		db.Model(&models.Config{}).Create(&models.Config{
+		if err := tx.Model(&models.Config{}).Create(&models.Config{
 			Param:    "smtp_email",
 			Value:    "",
 			Activate: true,
 			Updated:  TimeNow(),
-		})
+		}); err.Error != nil {
+			log.Error(err.Error)
+			return tx.Rollback().Error
+		}
 	}
-	db.Model(&models.Config{}).Where("param = ?", "smtp_pass").Count(&count)
+	if err := tx.Model(&models.Config{}).Where("param = ?", "smtp_pass").Count(&count); err.Error != nil {
+		log.Error(err.Error)
+		return tx.Rollback().Error
+	}
 	if count == 0 {
-		db.Model(&models.Config{}).Create(&models.Config{
+		if err := tx.Model(&models.Config{}).Create(&models.Config{
 			Param:    "smtp_pass",
 			Value:    "",
 			Activate: true,
 			Updated:  TimeNow(),
-		})
+		}); err.Error != nil {
+			log.Error(err.Error)
+			return tx.Rollback().Error
+		}
 	}
+
+	if err := tx.Commit(); err.Error != nil {
+		log.Error(err.Error)
+		return tx.Rollback().Error
+	}
+
+	return nil
 }
 
 func createDefaultUserIfNotExists(db *gorm.DB) error {
+	log := logger.GetLogger()
+
 	var count int64
-	if err := db.Model(&models.User{}).Where("login = ? OR email = ?", "universal", "uni@example.com").Count(&count).Error; err != nil {
-		return err
+	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
+
+	if err := tx.Model(&models.User{}).Where("login = ? OR email = ?", "universal", "uni@example.com").Count(&count).Error; err != nil {
+		log.Error(err)
+		return tx.Rollback().Error
 	}
 	if count == 0 {
 		defaultUser := models.User{
@@ -132,10 +181,15 @@ func createDefaultUserIfNotExists(db *gorm.DB) error {
 			Created: TimeNow(),
 			Updated: TimeNow(),
 		}
-		if err := db.Create(&defaultUser).Error; err != nil {
-			return err
+		if err := tx.Create(&defaultUser).Error; err != nil {
+			log.Error(err)
+			return tx.Rollback().Error
 		}
+	}
 
+	if err := tx.Commit(); err.Error != nil {
+		log.Error(err.Error)
+		return tx.Rollback().Error
 	}
 	return nil
 }

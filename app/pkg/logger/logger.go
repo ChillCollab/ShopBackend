@@ -62,8 +62,7 @@ func init() {
 	}
 	file, err := os.OpenFile("logs/errors.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		//Опять фатал не в main cmd
-		log.Fatalf("Failed to open error log file: %v", err)
+		log.Default().Printf("Failed to open error log file: %v", err)
 	}
 	l.SetOutput(io.Discard)
 

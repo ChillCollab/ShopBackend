@@ -1,10 +1,10 @@
 package utils
 
 import (
-	"fmt"
-	"github.com/go-playground/assert/v2"
 	"strings"
 	"testing"
+
+	"github.com/go-playground/assert/v2"
 )
 
 // Returns an integer between 0 and 999999
@@ -16,8 +16,10 @@ func TestGenerateNumberCodeInRange(t *testing.T) {
 }
 
 func TestCodeGenLength(t *testing.T) {
-	code := CodeGen()
-	fmt.Println(code)
+	code, err := CodeGen()
+	if err != nil {
+		t.Errorf("Expected no error, but got %v", err)
+	}
 	assert.Equal(t, 19, len(code))
 	assert.Equal(t, 3, strings.Count(code, "-"))
 }

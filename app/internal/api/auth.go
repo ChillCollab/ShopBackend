@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"backend/pkg/authorization"
+	"backend/pkg/client"
 
 	"backend/internal/dataBase"
 	errorcodes "backend/internal/errorCodes"
@@ -74,7 +75,7 @@ func (a *App) Login(c *gin.Context) {
 			a.db.AttachAction(models.ActionLogs{
 				Action:  "Try to login with incorrect password",
 				Login:   user.Login,
-				Ip:      c.ClientIP(),
+				Ip:      client.GetIP(c),
 				Created: dataBase.TimeNow(),
 			})
 		}
@@ -121,7 +122,7 @@ func (a *App) Login(c *gin.Context) {
 		a.db.AttachAction(models.ActionLogs{
 			Action:  "Login in to account",
 			Login:   user.Login,
-			Ip:      c.ClientIP(),
+			Ip:      client.GetIP(c),
 			Created: dataBase.TimeNow(),
 		})
 	}
@@ -169,20 +170,21 @@ func (a *App) Register(c *gin.Context) {
 		return
 	}
 
-	var ifExist []models.User
-	var foundLogin []models.User
+	var ifExist models.User
+	var foundLogin models.User
 
-	//Нет проверок на ошибки
-	// И опять же нахера массив? First.
-	a.db.Where("email = ?", user.Email).Find(&ifExist)
-	// то же самое
-	a.db.Model(&models.User{}).Where("login = ?", user.Login).Find(&foundLogin)
+	if err := a.db.Where("email = ?", user.Email).First(&ifExist); err.Error != nil {
+		a.logger.Errorf("error get user: %v", err.Error)
+	}
+	if err := a.db.Model(&models.User{}).Where("login = ?", user.Login).First(&foundLogin); err.Error != nil {
+		a.logger.Errorf("error get user: %v", err.Error)
+	}
 
-	if len(ifExist) > 0 {
+	if ifExist.Email != "" {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_already_exist"), errorcodes.UserAlreadyExist))
 		return
 	}
-	if len(foundLogin) > 0 {
+	if foundLogin.Login != "" {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "login_already_exist"), errorcodes.LoginAlreadyExist))
 		return
 	}
@@ -217,8 +219,6 @@ func (a *App) Register(c *gin.Context) {
 	})
 }
 
-//hi
-
 // @Summary Send register email
 // @Description Endpoint to send register email to submit registration
 // @Tags Auth
@@ -252,32 +252,28 @@ func (a *App) Send(c *gin.Context) {
 		return
 	}
 
-	//сложновато читать твои партянки с массивами
-	var checkUser []models.RegToken
+	var checkUser models.RegToken
 
-	a.db.Model(&models.RegToken{}).Where("user_id = ? AND type = ?", foundUser.ID, 0).Find(&checkUser)
-	if len(checkUser) > 1 {
-		del := a.db.Model(&checkUser).Delete(checkUser)
+	if err := a.db.Model(&models.RegToken{}).Where("user_id = ? AND type = ?", foundUser.ID, 0).First(&checkUser); err.Error != nil {
+		a.logger.Errorf("error get user: %v", err.Error)
+	}
+
+	if checkUser.Created > time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorcodes.EmailAlreadySent))
+		return
+	} else {
+		del := a.db.Model(&models.RegToken{}).Delete("user_id = ?", checkUser.UserId)
 		if del.Error != nil {
 			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
 			return
 		}
-		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorcodes.MultipleData))
+	}
+	code, errGen := utils.CodeGen()
+	if errGen != nil {
+		a.logger.Errorf("error generate code: %v", errGen)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "error"), errorcodes.ServerError))
 		return
 	}
-	if len(checkUser) > 0 {
-		if checkUser[0].Created > time.Now().UTC().Add(-2*time.Minute).Format(os.Getenv("DATE_FORMAT")) {
-			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "email_already_sent")+user.Email, errorcodes.EmailAlreadySent))
-			return
-		} else {
-			del := a.db.Model(&models.RegToken{}).Delete("user_id = ?", checkUser[0].UserId)
-			if del.Error != nil {
-				c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
-				return
-			}
-		}
-	}
-	code := utils.CodeGen()
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "email_sent")+foundUser.Email, 0))
 
@@ -346,25 +342,18 @@ func (a *App) Activate(c *gin.Context) {
 
 	var activate models.RegToken
 
-	// Слищком большая функция у тебя, вынеси манипуляцию с бд куда нибудь в другое место
-	// Не правильно используешь транзакции. Смотри пример в /internal/database/users.go/CreateUsers
-
 	tx := a.db.Begin()
-	codesRes := tx.Model(&models.RegToken{}).Where("code = ?", user.Code).First(&activate)
-	if codesRes.RowsAffected <= 0 {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "activation_code_not_found"), errorcodes.ActivationCodeNotFound))
-		//Вышел, а транзакция висеть осталась
-		return
-	}
-	// Check if token is expired
-	if activate.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
-		if deleteCode := tx.Model(&models.RegToken{}).Delete("code = ?", activate.Code); deleteCode.Error != nil {
+	defer func() {
+		if r := recover(); r != nil {
 			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
-			return
 		}
-		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
-		//Опять же транзация висит
+	}()
+
+	if err := a.db.CheckActivationCode(models.RegToken{
+		Code: user.Code,
+	}); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_activation_code"), errorcodes.IncorrectActivationCode))
 		return
 	}
 
@@ -409,15 +398,17 @@ func (a *App) Activate(c *gin.Context) {
 		return
 	}
 
-	// Нет проверки на ошибку
-	tx.Commit()
+	if err := tx.Commit().Error; err != nil {
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
+		return
+	}
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "account")+foundUsers.Email+" "+language.Language(lang, "success_activate"), 0))
 
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Activate account by registration code",
 		Login:   foundUsers.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }
@@ -732,7 +723,12 @@ func (a *App) Recovery(c *gin.Context) {
 		return
 	}
 
-	code := utils.CodeGen()
+	code, errGen := utils.CodeGen()
+	if errGen != nil {
+		a.logger.Error(errGen)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "error"), errorcodes.ServerError))
+		return
+	}
 
 	// Create new code in database
 	if err := a.db.Model(&models.RegToken{}).Create(models.RegToken{
@@ -751,7 +747,7 @@ func (a *App) Recovery(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Recovery password",
 		Login:   foundUser.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 
@@ -801,11 +797,15 @@ func (a *App) RecoverySubmit(c *gin.Context) {
 	}
 
 	tx := a.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	// Find of code
 	var foundCodes models.RegToken
-	err = tx.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).First(&foundCodes).Error
-	if err != nil {
+	if err := tx.Model(models.RegToken{}).Where("code = ?", recoveryBody.Code).First(&foundCodes).Error; err != nil {
 		tx.Rollback()
 		a.logger.Error(err)
 	}
@@ -816,8 +816,7 @@ func (a *App) RecoverySubmit(c *gin.Context) {
 
 	// Find user by code
 	var foundUser models.User
-	err = tx.Model(models.User{}).Where("id = ?", uint(foundCodes.UserId)).First(&foundUser).Error
-	if err != nil {
+	if err := tx.Model(models.User{}).Where("id = ?", uint(foundCodes.UserId)).First(&foundUser).Error; err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusNotFound, models.ResponseMsg(false, language.Language(lang, "recovery_code_not_found"), errorcodes.RecoveryCodeNotFound))
 		return
@@ -857,7 +856,7 @@ func (a *App) RecoverySubmit(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Submit recovery password",
 		Login:   foundUser.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }

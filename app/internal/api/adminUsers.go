@@ -5,6 +5,7 @@ import (
 	"backend/internal/roles"
 	"backend/models/requestData"
 	"backend/pkg/authorization"
+	"backend/pkg/client"
 	"backend/pkg/images"
 	"net/http"
 	"os"
@@ -177,7 +178,7 @@ func (a *App) ChangeUser(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Update user: " + user.Login,
 		Login:   fullUserInfo.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }
@@ -278,7 +279,7 @@ func (a *App) DeleteUsers(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Delete users " + strings.Join(userLogins, ", "),
 		Login:   user.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }

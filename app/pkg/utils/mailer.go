@@ -27,21 +27,32 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 		return false
 	}
 
-	var host models.Config
-	var port models.Config
-	var email models.Config
-	var password models.Config
+	var configs []models.Config
+	params := []string{"smtp_host", "smtp_port", "smtp_email", "smtp_pass"}
 
-	//Ошибки
-	db.Model(&models.Config{}).Where("param = ?", "smtp_host").Find(&host)
-	db.Model(&models.Config{}).Where("param = ?", "smtp_port").Find(&port)
-	db.Model(&models.Config{}).Where("param = ?", "smtp_email").Find(&email)
-	db.Model(&models.Config{}).Where("param = ?", "smtp_pass").Find(&password)
+	if err := db.Model(&models.Config{}).Where("param IN ?", params).Find(&configs); err.Error != nil {
+		log.Error(err.Error)
+		return false
+	}
+
+	var host, port, email, password models.Config
+	for _, config := range configs {
+		switch config.Param {
+		case "smtp_host":
+			host = config
+		case "smtp_port":
+			port = config
+		case "smtp_email":
+			email = config
+		case "smtp_pass":
+			password = config
+		}
+	}
 
 	if host.Value == "" || port.Value == "" || email.Value == "" || password.Value == "" {
 		log.Error(host.Value, port.Value, email.Value, password.Value)
 		log.Error("SMTP config not found or incorrect")
-		// и пошел дальше :(
+		return false
 	}
 
 	m := gomail.NewMessage()
@@ -55,8 +66,8 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 
 	prt, err := strconv.Atoi(port.Value)
 	if err != nil {
-		//Опять паника
-		panic(err)
+		log.Errorf("Convert port error: %v", err)
+		return false
 	}
 
 	d := gomail.NewDialer(host.Value, prt, email.Value, password.Value)
