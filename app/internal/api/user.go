@@ -1,6 +1,7 @@
 package api
 
 import (
+	"backend/consumer"
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
 	"backend/models"
@@ -312,7 +313,7 @@ func (a *App) ChangeEmail(c *gin.Context) {
 	tx.Commit()
 
 	go func() {
-		sent := utils.Send(user.Email, "Email change", "Your submit code: "+strconv.Itoa(code), a.db.DB)
+		sent := consumer.Send(user.Email, "Email change", "Your submit code: "+strconv.Itoa(code), a.db.DB)
 		if !sent {
 			c.JSON(
 				http.StatusInternalServerError,

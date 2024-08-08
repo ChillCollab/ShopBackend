@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"backend/consumer"
 	"backend/pkg/authorization"
 	"backend/pkg/client"
 
@@ -289,7 +290,7 @@ func (a *App) Send(c *gin.Context) {
 			return
 		}
 
-		if !utils.Send(
+		if !consumer.Send(
 			user.Email,
 			"Welcome to Admin Panel!", "Your link for continue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
 				"\n\nEmail: "+foundUser.Email+
@@ -750,7 +751,7 @@ func (a *App) Recovery(c *gin.Context) {
 
 	// Send email
 	go func(code string) {
-		utils.Send(
+		consumer.Send(
 			foundUser.Email,
 			"Admin Panel password recovery!", "Your link for continue is:  "+os.Getenv("DOMAIN")+"/recovery/submit/"+code+
 				"\n\nEmail: "+user.Email+
