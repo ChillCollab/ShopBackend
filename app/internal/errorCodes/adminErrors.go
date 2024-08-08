@@ -11,4 +11,5 @@ const (
 	AvatarSizelimit
 	DeleteAvatarError
 	ActionLogsEmpty
+	CategoryUpdateError
 )

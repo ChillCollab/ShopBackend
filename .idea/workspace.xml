@@ -5,15 +5,14 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: fix create category bug">
-      <change beforePath="$PROJECT_DIR$/.idea/ShopBackend.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/ShopBackend.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/api.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/api.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/api/adminCategories.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/adminCategories.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/api/adminUsers.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/adminUsers.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/internal/api/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/auth.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/config/config.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/config/config.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/dbConfig.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/dbConfig.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/redis.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/redis.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/users.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/users.go" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/pkg/authorization/jwt.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/pkg/authorization/jwt.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/api/middlewares/isAuthorized.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/middlewares/isAuthorized.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/errorCodes/adminErrors.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/errorCodes/adminErrors.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/languages/en.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/languages/en.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/pkg/logger/logger.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/pkg/logger/logger.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,12 +26,17 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="2i0M5cWBp7TNdmDXtevQwwdtmNx" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
     <option name="showMembers" value="true" />
     <option name="sortByType" value="true" />
+    <option name="sortKey" value="BY_TYPE" />
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
@@ -44,13 +48,23 @@
     "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
     "RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed": "true",
     "WebServerToolWindowFactoryState": "false",
+    "git-widget-placeholder": "fixRefact",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
-    "last_opened_file_path": "/Users/oermoshkin",
+    "last_opened_file_path": "/Users/masev1ch",
+    "nodejs_package_manager_path": "npm",
     "settings.editor.selected.configurable": "goland.project.structure",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-gosdk-33c477a475b1-e0158606a674-org.jetbrains.plugins.go.sharedIndexes.bundled-GO-241.15989.157" />
+        <option value="bundled-js-predefined-1d06a55b98c1-91d5c284f522-JavaScript-GO-241.15989.157" />
+      </set>
+    </attachedChunks>
+  </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />

@@ -40,6 +40,7 @@
     "recovery_code_expired": "Your recovery code was expired! Request a new recovery code.",
     "password_reseted": "Password was reseted",
     "password_updated": "Password was updated",
+    "category_update_error": "Category update error",
     "user_data_updated": "User data was updated",
     "code_was_sent": "Code was sent to address: ",
     "code_not_found": "Code not found",

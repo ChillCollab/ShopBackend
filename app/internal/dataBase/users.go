@@ -2,8 +2,11 @@ package dataBase
 
 import (
 	"fmt"
+	"os"
+	"time"
 
 	"backend/models"
+	"backend/pkg/logger"
 )
 
 func (db *Database) UserInfo(login interface{}, email interface{}) (models.FullUserInfo, error) {
@@ -22,7 +25,6 @@ func (db *Database) UserInfo(login interface{}, email interface{}) (models.FullU
 }
 
 func (db *Database) CreateUser(user models.User) error {
-	//Делай так во всех своих функциях
 	tx := db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -34,8 +36,30 @@ func (db *Database) CreateUser(user models.User) error {
 	if err != nil {
 		return fmt.Errorf("error create user: %v", err)
 	}
-
-	//Нужно возвращать ошибку
-	//И если она была при возврате, нужно отработать Rollback
 	return tx.Commit().Error
+}
+
+func (db *Database) CheckActivationCode(token models.RegToken) (tok models.RegToken, err error) {
+	log := logger.GetLogger()
+	tx := db.Begin()
+	var activate models.RegToken
+	codesRes := tx.Model(&models.RegToken{}).Where("code = ?", token.Code).First(&activate)
+	if codesRes.RowsAffected <= 0 {
+		log.Error("error get activation code")
+		tx.Rollback()
+		return activate, codesRes.Error
+	}
+	// Check if token is expired
+	if activate.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
+		if deleteCode := tx.Model(&models.RegToken{}).Delete("code = ?", activate.Code); deleteCode.Error != nil {
+			tx.Rollback()
+			log.Error("error delete activation code")
+			return activate, deleteCode.Error
+		}
+		log.Error("activation code expired")
+		tx.Rollback()
+		return activate, fmt.Errorf("activation code expired")
+	}
+
+	return activate, tx.Commit().Error
 }

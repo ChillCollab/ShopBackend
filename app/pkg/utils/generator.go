@@ -16,13 +16,12 @@ func GenerateNumberCode() int {
 	return code
 }
 
-func CodeGen() string {
+func CodeGen() (string, error) {
 
 	bytes := make([]byte, 8)
 	_, err := rand.Read(bytes)
 	if err != nil {
-		//Шикарно)))
-		panic(err)
+		return "", err
 	}
 
 	// Convert bytes to hexadecimal string
@@ -31,16 +30,15 @@ func CodeGen() string {
 	// Format the code as "xxxx-xxxx-xxxx-xxxx"
 	formattedCode := fmt.Sprintf("%s-%s-%s-%s", code[0:4], code[4:8], code[8:12], code[12:16])
 
-	return formattedCode
+	return formattedCode, nil
 }
 
-func LongCodeGen() string {
+func LongCodeGen() (string, error) {
 
 	bytes := make([]byte, 16)
 	_, err := rand.Read(bytes)
 	if err != nil {
-		//люблю паники в коде)))
-		panic(err)
+		return "", err
 	}
 
 	// Convert bytes to hexadecimal string
@@ -49,5 +47,5 @@ func LongCodeGen() string {
 	// Format the code as "xxxx-xxxx-xxxx-xxxx"
 	formattedCode := fmt.Sprintf("%s-%s-%s-%s-%s-%s", code[0:4], code[4:8], code[8:12], code[12:16], code[16:20], code[20:24])
 
-	return formattedCode
+	return formattedCode, nil
 }

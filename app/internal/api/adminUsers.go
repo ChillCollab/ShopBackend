@@ -5,6 +5,7 @@ import (
 	"backend/internal/roles"
 	"backend/models/requestData"
 	"backend/pkg/authorization"
+	"backend/pkg/client"
 	"backend/pkg/images"
 	"net/http"
 	"os"
@@ -177,7 +178,7 @@ func (a *App) ChangeUser(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Update user: " + user.Login,
 		Login:   fullUserInfo.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }
@@ -254,8 +255,8 @@ func (a *App) DeleteUsers(c *gin.Context) {
 				a.logger.Errorf("error create avatar: %v", err)
 			}
 			err := a.db.Model(&models.File{}).Where("uuid = ?", usr.AvatarId).Delete(&models.File{})
-			if err != nil {
-				a.logger.Errorf("error delete avatar: %v", err)
+			if err.Error != nil {
+				a.logger.Errorf("error delete avatar: %v", err.Error)
 			}
 		}
 	}
@@ -278,7 +279,7 @@ func (a *App) DeleteUsers(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Delete users " + strings.Join(userLogins, ", "),
 		Login:   user.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"backend/consumer"
 	"backend/internal/dataBase"
 	"backend/internal/errorCodes"
 	"backend/models"
@@ -8,16 +9,18 @@ import (
 	"backend/models/requestData"
 	"backend/models/responses"
 	"backend/pkg/authorization"
+	"backend/pkg/client"
 	"backend/pkg/images"
 	"backend/pkg/utils"
 	"encoding/json"
 	"fmt"
-	"gorm.io/gorm"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"gorm.io/gorm"
 
 	"github.com/gin-gonic/gin"
 )
@@ -130,7 +133,7 @@ func (a *App) ChangePassword(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Change password",
 		Login:   fullUserInfo.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }
@@ -225,7 +228,7 @@ func (a *App) ChangeOwnData(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Change personal data",
 		Login:   users.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 
@@ -259,6 +262,11 @@ func (a *App) ChangeEmail(c *gin.Context) {
 	var user models.User
 
 	tx := a.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	if err := tx.Model(models.User{}).Where("email = ?", email).First(&user).Error; err != nil {
 		a.logger.Infof("error get user: %v", err)
@@ -305,7 +313,7 @@ func (a *App) ChangeEmail(c *gin.Context) {
 	tx.Commit()
 
 	go func() {
-		sent := utils.Send(user.Email, "Email change", "Your submit code: "+strconv.Itoa(code), a.db.DB)
+		sent := consumer.Send(user.Email, "Email change", "Your submit code: "+strconv.Itoa(code), a.db.DB)
 		if !sent {
 			c.JSON(
 				http.StatusInternalServerError,
@@ -320,7 +328,7 @@ func (a *App) ChangeEmail(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Try to change email",
 		Login:   user.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }
@@ -348,6 +356,11 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	}
 
 	tx := a.db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
 	code := completeBody.Code
 	var foundCode models.EmailChange
@@ -370,12 +383,15 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 
 	if err := tx.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("email", foundCode.Email); err.Error != nil {
 		a.logger.Infof("error update email: %v", err)
+		tx.Rollback()
 	}
 	if err := tx.Model(models.User{}).Where("id = ?", foundCode.UserID).Update("updated", dataBase.TimeNow()); err.Error != nil {
 		a.logger.Infof("error update email: %v", err)
+		tx.Rollback()
 	}
 	if err := tx.Model(models.EmailChange{}).Where("code = ?", code).Delete(&foundCode); err.Error != nil {
 		a.logger.Infof("error delete email change code: %v", err)
+		tx.Rollback()
 	}
 
 	tx.Commit()
@@ -386,6 +402,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 		Role:       users.RoleId,
 	})
 	if err != nil {
+		a.logger.Errorf("error generate token: %v", err)
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "token_generate_error"), errorCodes.TokenError))
 		return
 	}
@@ -413,7 +430,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	a.db.AttachAction(models.ActionLogs{
 		Action:  "Change email complete",
 		Login:   users.Login,
-		Ip:      c.ClientIP(),
+		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
 	})
 }
@@ -491,30 +508,33 @@ func (a *App) UploadAvatar(c *gin.Context) {
 		return
 	}
 
-	uuid := utils.LongCodeGen()
+	uuid, errGen := utils.LongCodeGen()
+	if errGen != nil {
+		a.logger.Errorf("error generate uuid: %v", errGen)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate UUID"})
+	}
+
+	filePath := filepath.Join(os.Getenv("IMAGES_PATH"), file.Filename)
+	if err := c.SaveUploadedFile(file, filePath); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
+		return
+	}
+
 	if users[0].AvatarId != "" {
-		var foundImages []models.File
-		a.db.Model(&models.File{}).Where("uuid = ?", users[0].AvatarId).Find(&foundImages)
-		if len(foundImages) > 1 {
-			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-			return
+		var foundImages models.File
+
+		if err := a.db.Model(&models.File{}).Where("uuid = ?", users[0].AvatarId).First(&foundImages); err.Error != nil {
+			a.logger.Errorf("error create avatar: %v", err)
 		}
 
-		if len(foundImages) != 0 {
-			oldFilePath := filepath.Join(os.Getenv("IMAGES_PATH"), foundImages[0].Filename)
+		if foundImages.Filename != "" {
+			oldFilePath := filepath.Join(os.Getenv("IMAGES_PATH"), foundImages.Filename)
 			err = os.Remove(oldFilePath)
 			if err != nil {
 				a.logger.Errorf("error create avatar: %v", err)
 			}
 			a.db.Model(&models.File{}).Where("uuid = ?", users[0].AvatarId).Delete(&models.File{})
 		}
-	}
-
-	//Сначало нужно обработать файл и лишь потом делать обновление в базе
-	filePath := filepath.Join(os.Getenv("IMAGES_PATH"), file.Filename)
-	if err := c.SaveUploadedFile(file, filePath); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save file"})
-		return
 	}
 
 	fileMetadata := models.File{
