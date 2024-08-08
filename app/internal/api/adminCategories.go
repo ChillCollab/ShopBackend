@@ -65,9 +65,10 @@ func (a *App) CreateCategory(c *gin.Context) {
 		Updated:     dataBase.TimeNow(),
 	}
 
-	//ошибки
-	if err := a.db.Model(models.Category{}).Create(&category); err != nil {
-		a.logger.Error(err)
+	if err := a.db.Model(models.Category{}).Create(&category); err.Error != nil {
+		a.logger.Error(err.Error)
+		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "error"), errorCodes.ServerError))
+		return
 	}
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "category_created"), 0))
@@ -135,8 +136,8 @@ func (a *App) GetCategoryList(c *gin.Context) {
 
 	// Get all categories
 	var foundCategories []models.Category
-	if err := a.db.Model(&models.Category{}).Find(&foundCategories); err != nil {
-		a.logger.Error(err)
+	if err := a.db.Model(&models.Category{}).Find(&foundCategories); err.Error != nil {
+		a.logger.Error(err.Error)
 	}
 
 	if len(foundCategories) <= 0 {
@@ -197,6 +198,8 @@ func (a *App) CategoryUpdate(c *gin.Context) {
 
 	if err := a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).Updates(&newCategory); err.Error != nil {
 		a.logger.Errorf("error update category: %v", err.Error)
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "category_update_error"), errorCodes.CategoryUpdateError))
+		return
 	}
 
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "category_updated"), 0))

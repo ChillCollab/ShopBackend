@@ -340,8 +340,6 @@ func (a *App) Activate(c *gin.Context) {
 		return
 	}
 
-	var activate models.RegToken
-
 	tx := a.db.Begin()
 	defer func() {
 		if r := recover(); r != nil {
@@ -349,9 +347,10 @@ func (a *App) Activate(c *gin.Context) {
 		}
 	}()
 
-	if err := a.db.CheckActivationCode(models.RegToken{
+	activate, err := a.db.CheckActivationCode(models.RegToken{
 		Code: user.Code,
-	}); err != nil {
+	})
+	if err != nil {
 		tx.Rollback()
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_activation_code"), errorcodes.IncorrectActivationCode))
 		return
@@ -578,13 +577,11 @@ func (a *App) CheckRegistrationCode(c *gin.Context) {
 
 	var foundCodes models.RegToken
 	if err := a.db.Model(models.RegToken{}).Where("code = ? AND type = ?", code.Code, 0).First(&foundCodes).Error; err != nil {
-		a.logger.Error(err)
-		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "db_error"), errorcodes.DBError))
-		return
-	}
-	if foundCodes.Code == "" {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
-		return
+		a.logger.Info(err)
+		if foundCodes.Code == "" {
+			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "register_code_not_found"), errorcodes.NotFoundRegistrationCode))
+			return
+		}
 	}
 
 	var user models.User

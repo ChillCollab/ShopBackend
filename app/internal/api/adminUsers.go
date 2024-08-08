@@ -255,8 +255,8 @@ func (a *App) DeleteUsers(c *gin.Context) {
 				a.logger.Errorf("error create avatar: %v", err)
 			}
 			err := a.db.Model(&models.File{}).Where("uuid = ?", usr.AvatarId).Delete(&models.File{})
-			if err != nil {
-				a.logger.Errorf("error delete avatar: %v", err)
+			if err.Error != nil {
+				a.logger.Errorf("error delete avatar: %v", err.Error)
 			}
 		}
 	}

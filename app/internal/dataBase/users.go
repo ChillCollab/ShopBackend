@@ -39,7 +39,7 @@ func (db *Database) CreateUser(user models.User) error {
 	return tx.Commit().Error
 }
 
-func (db *Database) CheckActivationCode(token models.RegToken) error {
+func (db *Database) CheckActivationCode(token models.RegToken) (tok models.RegToken, err error) {
 	log := logger.GetLogger()
 	tx := db.Begin()
 	var activate models.RegToken
@@ -47,19 +47,19 @@ func (db *Database) CheckActivationCode(token models.RegToken) error {
 	if codesRes.RowsAffected <= 0 {
 		log.Error("error get activation code")
 		tx.Rollback()
-		return codesRes.Error
+		return activate, codesRes.Error
 	}
 	// Check if token is expired
 	if activate.Created < time.Now().UTC().Add(-24*time.Hour).Format(os.Getenv("DATE_FORMAT")) {
 		if deleteCode := tx.Model(&models.RegToken{}).Delete("code = ?", activate.Code); deleteCode.Error != nil {
 			tx.Rollback()
 			log.Error("error delete activation code")
-			return deleteCode.Error
+			return activate, deleteCode.Error
 		}
 		log.Error("activation code expired")
 		tx.Rollback()
-		return fmt.Errorf("activation code expired")
+		return activate, fmt.Errorf("activation code expired")
 	}
 
-	return tx.Commit().Error
+	return activate, tx.Commit().Error
 }

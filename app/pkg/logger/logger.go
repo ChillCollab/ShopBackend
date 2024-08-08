@@ -63,6 +63,7 @@ func init() {
 	file, err := os.OpenFile("logs/errors.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		log.Default().Printf("Failed to open error log file: %v", err)
+		return
 	}
 	l.SetOutput(io.Discard)
 
@@ -74,5 +75,4 @@ func init() {
 	l.SetLevel(logrus.TraceLevel)
 
 	e = logrus.NewEntry(l)
-
 }
