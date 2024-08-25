@@ -107,6 +107,7 @@ func (a *App) routes() {
 				users.GET("/list", client.IsAuthorized, middlewares.IsAdmin, a.Users)
 				users.POST("/change", client.IsAuthorized, middlewares.IsAdmin, a.ChangeUser)
 				users.DELETE("/delete", client.IsAuthorized, middlewares.IsAdmin, a.DeleteUsers)
+				users.POST("/create", client.IsAuthorized, middlewares.IsAdmin, a.CreateUser)
 			}
 			categories := admin.Group("/categories")
 			{

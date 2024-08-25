@@ -1,9 +1,12 @@
 package api
 
 import (
+	"backend/consumer"
 	"backend/internal/dataBase"
+	errorcodes "backend/internal/errorCodes"
 	"backend/internal/roles"
 	"backend/models/requestData"
+	"backend/models/responses"
 	"backend/pkg/authorization"
 	"backend/pkg/client"
 	"backend/pkg/images"
@@ -281,5 +284,101 @@ func (a *App) DeleteUsers(c *gin.Context) {
 		Login:   user.Login,
 		Ip:      client.GetIP(c),
 		Created: dataBase.TimeNow(),
+	})
+}
+
+// CreateUser создание пользователя
+// @Summary Create user account
+// @Description Endpoint to create user account
+// @Tags Admin
+// @Accept json
+// @Produce json
+// @Param body body requestData.CreateUser true "request requestData"
+// @Success 200 object responses.CreateUserAdmin
+// @Failure 400 object models.ErrorResponse
+// @Failure 401 object models.ErrorResponse
+// @Failure 500
+// @Security ApiKeyAuth
+// @Router /admin/users/create [post]
+func (a *App) CreateUser(c *gin.Context) {
+	lang := language.LangValue(c)
+	var userData requestData.CreateUser
+	err := c.ShouldBindJSON(&userData)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "parse_error"), errorCodes.ParsingError))
+		return
+	}
+
+	if userData.Login == "" || userData.Name == "" || userData.Surname == "" || userData.Email == "" {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_data_create_user"), errorCodes.IncorrectDataCreateUser))
+		return
+	}
+	if a.db.CheckIfUserExist(userData.Login, userData.Email) {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_already_exist"), errorCodes.UserAlreadyExist))
+		return
+	}
+
+	// Create user
+	if err := a.db.CreateUser(models.User{
+		Login:   userData.Login,
+		Name:    userData.Name,
+		Surname: userData.Surname,
+		Email:   userData.Email,
+		Active:  false,
+		RoleId:  0,
+		Created: dataBase.TimeNow(),
+		Updated: dataBase.TimeNow(),
+	}); err != nil {
+		a.logger.Errorf("error create user: %v", err)
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "create_user_error"), errorCodes.CreateUserError))
+		return
+	}
+
+	var createdUser models.User
+	if foundErr := a.db.Model(models.User{}).Where("login = ?", userData.Login).First(&createdUser).Error; foundErr != nil {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "create_user_error"), errorCodes.CreateUserError))
+		return
+	}
+
+	if userData.SendMail {
+		go func() {
+			code, errGen := utils.CodeGen()
+			if errGen != nil {
+				a.logger.Errorf("error generate code: %v", errGen)
+				c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, language.Language(lang, "error"), errorcodes.ServerError))
+				return
+			}
+			create := a.db.Model(&models.RegToken{}).Create(models.RegToken{
+				UserId:  int(createdUser.ID),
+				Type:    0,
+				Code:    code,
+				Created: dataBase.TimeNow(),
+			})
+			if create.Error != nil {
+				a.logger.Error("Create mail in table error: " + create.Error.Error())
+				return
+			}
+
+			if !consumer.SendRegisterMail(createdUser.Email, lang, createdUser, code, a.db.DB) {
+				a.logger.Error("Email send error to address: " + createdUser.Email)
+				return
+			}
+		}()
+	}
+
+	c.JSON(http.StatusOK, responses.CreateUserAdmin{
+		Message: language.Language(lang, "user_created"),
+		Success: true,
+		User: responses.UserInfo{
+			Login:    createdUser.Login,
+			Name:     createdUser.Name,
+			Surname:  createdUser.Surname,
+			Email:    createdUser.Email,
+			AvatarId: createdUser.AvatarId,
+			Phone:    createdUser.Phone,
+			Role:     createdUser.RoleId,
+			Created:  createdUser.Created,
+			Updated:  createdUser.Updated,
+		},
 	})
 }

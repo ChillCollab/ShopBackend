@@ -372,6 +372,60 @@ const docTemplate = `{
                 }
             }
         },
+        "/admin/users/create": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Endpoint to create user account",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admin"
+                ],
+                "summary": "Create user account",
+                "parameters": [
+                    {
+                        "description": "request requestData",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/requestData.CreateUser"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.CreateUserAdmin"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/models.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error"
+                    }
+                }
+            }
+        },
         "/admin/users/delete": {
             "delete": {
                 "security": [
@@ -1356,6 +1410,9 @@ const docTemplate = `{
                 "created": {
                     "type": "string"
                 },
+                "id": {
+                    "type": "integer"
+                },
                 "ip": {
                     "type": "string"
                 },
@@ -1561,6 +1618,26 @@ const docTemplate = `{
                 }
             }
         },
+        "requestData.CreateUser": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "login": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "send_mail": {
+                    "type": "boolean"
+                },
+                "surname": {
+                    "type": "string"
+                }
+            }
+        },
         "requestData.Login": {
             "type": "object",
             "properties": {
@@ -1734,6 +1811,20 @@ const docTemplate = `{
                 },
                 "surname": {
                     "type": "string"
+                }
+            }
+        },
+        "responses.CreateUserAdmin": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "success": {
+                    "type": "boolean"
+                },
+                "user": {
+                    "$ref": "#/definitions/responses.UserInfo"
                 }
             }
         },

@@ -290,14 +290,7 @@ func (a *App) Send(c *gin.Context) {
 			return
 		}
 
-		if !consumer.Send(
-			user.Email,
-			"Welcome to Admin Panel!", "Your link for continue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
-				"\n\nEmail: "+foundUser.Email+
-				"\nLogin: "+foundUser.Name+
-				"\nName: "+foundUser.Name+
-				"\nSurname: "+foundUser.Surname+
-				"\nCreated: "+foundUser.Created, a.db.DB) {
+		if !consumer.SendRegisterMail(foundUser.Email, lang, foundUser, code, a.db.DB) {
 			a.logger.Error("Email send error to address: " + user.Email)
 			return
 		}

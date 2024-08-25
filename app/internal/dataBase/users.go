@@ -1,12 +1,15 @@
 package dataBase
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"time"
 
 	"backend/models"
 	"backend/pkg/logger"
+
+	"gorm.io/gorm"
 )
 
 func (db *Database) UserInfo(login interface{}, email interface{}) (models.FullUserInfo, error) {
@@ -62,4 +65,15 @@ func (db *Database) CheckActivationCode(token models.RegToken) (tok models.RegTo
 	}
 
 	return activate, tx.Commit().Error
+}
+
+func (db *Database) CheckIfUserExist(login string, email string) bool {
+	var user models.User
+	if err := db.Model(&models.User{}).Where("login = ? OR email = ?", login, email).First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return false
+		}
+		return false
+	}
+	return true
 }

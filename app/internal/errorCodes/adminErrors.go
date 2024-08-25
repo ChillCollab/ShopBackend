@@ -12,4 +12,6 @@ const (
 	DeleteAvatarError
 	ActionLogsEmpty
 	CategoryUpdateError
+	IncorrectDataCreateUser
+	CreateUserError
 )

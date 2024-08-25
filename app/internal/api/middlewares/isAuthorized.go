@@ -25,10 +25,6 @@ func (br *Broker) IsAuthorized(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return
 	}
-	// if authorization.JwtParse(token).Email == nil {
-	// 	c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
-	// 	return
-	// }
 	if authorization.CheckTokenExpiration(token) {
 		c.AbortWithStatusJSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
 		return

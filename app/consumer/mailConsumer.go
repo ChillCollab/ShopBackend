@@ -1,6 +1,7 @@
 package consumer
 
 import (
+	"backend/consumer/template"
 	"backend/models"
 	"backend/pkg/logger"
 	"backend/pkg/utils"
@@ -71,4 +72,12 @@ func Send(recipient string, subject string, msg string, db *gorm.DB) bool {
 	}
 	log.Info("Email was sent to: " + recipient)
 	return true
+}
+
+func SendRegisterMail(email string, lang string, user models.User, code string, db *gorm.DB) bool {
+	subject, msg := template.UserRegister(lang, user, code)
+
+	val := Send(email, subject, msg, db)
+
+	return val
 }

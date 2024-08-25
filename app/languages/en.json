@@ -13,10 +13,13 @@
     "incorrect_email": "Your email is not correct. Please write the correct email",
     "email_empty": "Email can't be empty",
     "user_already_registered": "User already registered",
+    "incorrect_data_create_user": "Sould have atributes login, name, surname, email, send_mail",
     "login_empty": "Login can't be empty",
+    "create_user_error": "Create user error",
     "name_surname_long": "Name and Surname must be not more 32",
     "login_can_be_include_letters_digits": "Login can be include only letters and digits",
-    "user_already_exist": "User with the same email already exist",
+    "user_created": "User was created successfuly",
+    "user_already_exist": "User with the same email or login already exist",
     "login_already_exist": "Login already exist",
     "db_error": "Database error",
     "created_user_not_found": "Created user was not found in table 'users'",
@@ -61,5 +64,7 @@
     "categories_list_empty": "Categories list is empty",
     "unsupported_file_extension": "Unsupported file format. Only JPG, JPEG, and PNG files are allowed",
     "too_big_avatar_size": "File size exceeds the maximum allowed size of 3MB",
-    "action_log_empty": "Action log is empty"
+    "action_log_empty": "Action log is empty",
+    "welcome_admin_panel": "Welcome to Admin Panel!",
+    "link_to_register": "Your link to registration is: "
 }
