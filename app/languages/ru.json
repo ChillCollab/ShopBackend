@@ -11,6 +11,8 @@
     "incorrect_old_password": "Неправильный старый пароль",
     "role_not_found": "Роль не найдена",
     "is_no_active": "не активен",
+    "incorrect_data_create_user": "Для создания требуются атрибуты login, name, surname, email, send_mail",
+    "create_user_error": "Ошибка создания пользователя",
     "incorrect_name_or_surname": "Имя или фамилия некорректны",
     "incorrect_email": "Почта введна некорреткно. Пожалуйста, введите корректную почту",
     "login_empty": "Логин не может быть пустым",
@@ -18,6 +20,7 @@
     "login_can_be_include_letters_digits": "Логин может содержать только буквы и цифры",
     "user_already_exist": "Пользователь с такой почтой уже существует",
     "login_already_exist": "Пользователь с таким логином уже существует",
+    "user_created": "Пользователь был успешно создан",
     "db_error": "Ошибка базы данных",
     "created_user_not_found": "Созданный пользователь не найден в таблице 'users'",
     "user_not_registered": "Пользователь не зарегистрирован",
@@ -59,5 +62,10 @@
     "categories_list_empty": "Список категорий пуст",
     "unsupported_file_extension": "Неподдерживаемый тип файла. Только JPG, JPEG и PNG файлы поддерживаются",
     "too_big_avatar_size": "Размер файла превышает максимально допустимый размер 3МБ",
-    "action_log_empty": "Журнал активности пуст"
+    "action_log_empty": "Журнал активности пуст",
+    "welcome_admin_panel": "Добро пожаловать в Административную панель",
+    "link_to_register": "Ваша ссылка для регистрации: ",
+    "smtp_settings_updated": "Настройки почтового сервера обновлены успешно!",
+    "user_updated": "Данные пользователя были успешно обновлены",
+    "internal_error": "Внутряння ошибка"
 }

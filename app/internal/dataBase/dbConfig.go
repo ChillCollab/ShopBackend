@@ -176,7 +176,7 @@ func createDefaultUserIfNotExists(db *gorm.DB) error {
 			Email:   "uni@example.com",
 			Phone:   "00000000000",
 			Active:  true,
-			RoleId:  1,
+			Role:    1,
 			Pass:    utils.Hash("admin"),
 			Created: TimeNow(),
 			Updated: TimeNow(),

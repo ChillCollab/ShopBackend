@@ -290,14 +290,7 @@ func (a *App) Send(c *gin.Context) {
 			return
 		}
 
-		if !consumer.Send(
-			user.Email,
-			"Welcome to Admin Panel!", "Your link for continue is: "+os.Getenv("DOMAIN")+"/registration/submit/"+code+
-				"\n\nEmail: "+foundUser.Email+
-				"\nLogin: "+foundUser.Name+
-				"\nName: "+foundUser.Name+
-				"\nSurname: "+foundUser.Surname+
-				"\nCreated: "+foundUser.Created, a.db.DB) {
+		if !consumer.SendRegisterMail(foundUser.Email, lang, foundUser, code, a.db.DB) {
 			a.logger.Error("Email send error to address: " + user.Email)
 			return
 		}
@@ -364,11 +357,6 @@ func (a *App) Activate(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorcodes.UserNotFound))
 		return
 	}
-	// Check if user is already registered
-	if foundUsers.Active {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
-		return
-	}
 
 	// Delete activation code
 	if deleteCode := tx.Model(&models.RegToken{}).Where("code = ?", activate.Code).Delete(activate); deleteCode.Error != nil {
@@ -377,11 +365,6 @@ func (a *App) Activate(c *gin.Context) {
 		return
 	}
 
-	if foundUsers.Pass != "" {
-		tx.Rollback()
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
-		return
-	}
 	// Create (UPDATE) new password
 	if updatePass := tx.Model(&models.User{}).Where("id = ?", foundUsers.ID).Update("pass", utils.Hash(user.Password)); updatePass.Error != nil {
 		tx.Rollback()
@@ -481,7 +464,7 @@ func (a *App) Refresh(c *gin.Context) {
 	access, refresh, err := authorization.GenerateJWT(authorization.TokenData{
 		Authorized: true,
 		Email:      user.Email,
-		Role:       user.RoleId,
+		Role:       user.Role,
 	})
 	if err != nil {
 		a.logger.Error(err)
@@ -603,11 +586,6 @@ func (a *App) CheckRegistrationCode(c *gin.Context) {
 			return
 		}
 		c.JSON(http.StatusUnauthorized, models.ResponseMsg(false, language.Language(lang, "activation_code_expired"), errorcodes.ActivationCodeExpired))
-		return
-	}
-
-	if user.Active {
-		c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "user_already_registered"), errorcodes.UserAlreadyRegistered))
 		return
 	}
 

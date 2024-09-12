@@ -54,6 +54,7 @@ type ChangeUser struct {
 	Email   string `json:"email"`
 	Phone   string `json:"phone"`
 	Role    int    `json:"role"`
+	Active  bool   `json:"active"`
 }
 
 type CategoryUpdate struct {

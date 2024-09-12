@@ -107,6 +107,7 @@ func (a *App) routes() {
 				users.GET("/list", client.IsAuthorized, middlewares.IsAdmin, a.Users)
 				users.POST("/change", client.IsAuthorized, middlewares.IsAdmin, a.ChangeUser)
 				users.DELETE("/delete", client.IsAuthorized, middlewares.IsAdmin, a.DeleteUsers)
+				users.POST("/create", client.IsAuthorized, middlewares.IsAdmin, a.CreateUser)
 			}
 			categories := admin.Group("/categories")
 			{
@@ -115,6 +116,14 @@ func (a *App) routes() {
 				categories.GET("/list", client.IsAuthorized, middlewares.IsAdmin, a.GetCategoryList)
 				categories.PATCH("/update", client.IsAuthorized, middlewares.IsAdmin, a.CategoryUpdate)
 				categories.DELETE("/delete", client.IsAuthorized, middlewares.IsAdmin, a.DeleteCategory)
+			}
+			config := admin.Group("/settings")
+			{
+				config.GET("/config", client.IsAuthorized, middlewares.IsAdmin, a.GetConfig)
+				update := config.Group("/update")
+				{
+					update.POST("/smtp", client.IsAuthorized, middlewares.IsAdmin, a.UpdateSMTP)
+				}
 			}
 			actions := admin.Group("/actions")
 			{
