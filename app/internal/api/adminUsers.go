@@ -95,6 +95,7 @@ func (a *App) ChangeUser(c *gin.Context) {
 			return
 		}
 	}
+
 	if user.Login != "" {
 		if valid := utils.ValidateLogin(user.Login); !valid {
 			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "login_can_be_include_letters_digits"), errorCodes.IncorrectUserLogin))
@@ -103,7 +104,7 @@ func (a *App) ChangeUser(c *gin.Context) {
 	}
 
 	var foundUser models.User
-	result := a.db.Model(&models.User{}).Where("id = ?", user.ID).Find(&foundUser)
+	result := a.db.Model(&models.User{}).Where("id = ?", user.ID).First(&foundUser)
 	if result.Error != nil {
 		a.logger.Errorf("error find user: %v", err)
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_not_found"), errorCodes.UserNotFound))
@@ -122,7 +123,6 @@ func (a *App) ChangeUser(c *gin.Context) {
 	foundUser.Phone = utils.IfEmpty(user.Phone, foundUser.Phone)
 	foundUser.Email = email
 
-	var foundRole []models.UserRole
 	if user.Role != 0 {
 		found := false
 		for _, num := range roles.UserRoles() {
@@ -140,28 +140,9 @@ func (a *App) ChangeUser(c *gin.Context) {
 			return
 		}
 
-		// Не понял зачем роли искать
-		result = a.db.Model(models.UserRole{}).Where("id = ?", foundUser.ID).Find(&foundRole)
-		if result.Error != nil {
-			a.logger.Errorf("error get user roles: %v", err)
-			c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, "internal error", errorCodes.DBError))
-			return
-		}
-
-		if len(foundRole) > 1 {
-			c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-			return
-		}
-
-		if len(foundRole) < 1 {
-			c.JSON(http.StatusForbidden, models.ResponseMsg(false, language.Language(lang, "multiple_error"), errorCodes.MultipleData))
-			return
-		}
 	}
 
-	//dataBase.DB.Model(&models.User{}).Where("id = ?", user.ID).UpdateColumns(newData).Update("active", newData.Active)
-	err = a.db.Save(foundUser).Error
-	if err != nil {
+	if err := a.db.UpdateUser(user); err != nil {
 		a.logger.Errorf("error update user: %v", err)
 		c.JSON(http.StatusInternalServerError, models.ResponseMsg(false, "internal error", errorCodes.DBError))
 		return
@@ -171,10 +152,10 @@ func (a *App) ChangeUser(c *gin.Context) {
 	c.JSON(http.StatusOK, models.ResponseMsg(true, language.Language(lang, "user_updated"), 0))
 
 	// Attach action
-	tokenData := authorization.JwtParse(c.GetHeader("Authorization"))
+	tokenData := authorization.JwtParse(authorization.GetToken(c))
 	fullUserInfo, errInfo := a.db.UserInfo(tokenData.Email, tokenData.Email)
 	if errInfo != nil {
-		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email_or_password"), errorCodes.Unauthorized))
+		a.logger.Errorf("Error get full user info" + errInfo.Error())
 		return
 	}
 
@@ -313,6 +294,12 @@ func (a *App) CreateUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_data_create_user"), errorCodes.IncorrectDataCreateUser))
 		return
 	}
+
+	if !utils.MailValidator(userData.Email) {
+		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "incorrect_email"), errorCodes.IncorrectEmail))
+		return
+	}
+
 	if a.db.CheckIfUserExist(userData.Login, userData.Email) {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "user_already_exist"), errorCodes.UserAlreadyExist))
 		return
@@ -324,8 +311,8 @@ func (a *App) CreateUser(c *gin.Context) {
 		Name:    userData.Name,
 		Surname: userData.Surname,
 		Email:   userData.Email,
-		Active:  false,
-		RoleId:  0,
+		Active:  true,
+		Role:    0,
 		Created: dataBase.TimeNow(),
 		Updated: dataBase.TimeNow(),
 	}); err != nil {
@@ -376,7 +363,7 @@ func (a *App) CreateUser(c *gin.Context) {
 			Email:    createdUser.Email,
 			AvatarId: createdUser.AvatarId,
 			Phone:    createdUser.Phone,
-			Role:     createdUser.RoleId,
+			Role:     createdUser.Role,
 			Created:  createdUser.Created,
 			Updated:  createdUser.Updated,
 		},

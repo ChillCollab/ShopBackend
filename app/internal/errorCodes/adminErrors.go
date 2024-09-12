@@ -14,4 +14,5 @@ const (
 	CategoryUpdateError
 	IncorrectDataCreateUser
 	CreateUserError
+	ErrorGetConfig
 )

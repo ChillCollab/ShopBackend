@@ -5,14 +5,24 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="c629c84c-b3d3-4da7-a273-0b711bf5cb3a" name="Changes" comment="fix: fix create category bug">
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/internal/api/adminCategories.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/adminCategories.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/cmd/logs/errors.log" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/consumer/mailConsumer.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/consumer/mailConsumer.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/docs/docs.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/docs/docs.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/docs/swagger.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/docs/swagger.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/docs/swagger.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/app/docs/swagger.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/go.mod" beforeDir="false" afterPath="$PROJECT_DIR$/app/go.mod" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/go.sum" beforeDir="false" afterPath="$PROJECT_DIR$/app/go.sum" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/go.work.sum" beforeDir="false" afterPath="$PROJECT_DIR$/app/go.work.sum" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/internal/api/adminUsers.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/adminUsers.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/api/api.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/api.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/internal/api/auth.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/auth.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/internal/api/middlewares/isAuthorized.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/api/middlewares/isAuthorized.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/internal/dataBase/users.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/dataBase/users.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/internal/errorCodes/adminErrors.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/internal/errorCodes/adminErrors.go" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app/languages/en.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/languages/en.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/app/pkg/logger/logger.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/pkg/logger/logger.go" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/languages/ru.json" beforeDir="false" afterPath="$PROJECT_DIR$/app/languages/ru.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/main" beforeDir="false" afterPath="$PROJECT_DIR$/app/main" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app/models/requestData/admin.go" beforeDir="false" afterPath="$PROJECT_DIR$/app/models/requestData/admin.go" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -48,7 +58,7 @@
     "RunOnceActivity.go.modules.go.list.on.any.changes.was.set": "true",
     "RunOnceActivity.go.watchers.conflict.with.on.save.actions.check.performed": "true",
     "WebServerToolWindowFactoryState": "false",
-    "git-widget-placeholder": "fixRefact",
+    "git-widget-placeholder": "admin-user-create",
     "go.import.settings.migrated": "true",
     "go.sdk.automatically.set": "true",
     "last_opened_file_path": "/Users/masev1ch",

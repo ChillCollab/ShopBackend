@@ -12,10 +12,10 @@ func (db *Database) SmtpSet(data requestData.SmtpSettings) error {
 	}
 
 	settings := map[string]string{
-		"SmtpHost":     data.Host,
-		"SmtpPort":     data.Port,
-		"SmtpEmail":    data.Email,
-		"SmtpPassword": data.Password,
+		"smtp_host":     data.Host,
+		"smtp_port":     data.Port,
+		"smtp_email":    data.Email,
+		"smtp_password": data.Password,
 	}
 
 	for param, value := range settings {

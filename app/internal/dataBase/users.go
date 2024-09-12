@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"backend/models"
+	"backend/models/requestData"
 	"backend/pkg/logger"
 
 	"gorm.io/gorm"
@@ -16,8 +17,23 @@ func (db *Database) UserInfo(login interface{}, email interface{}) (models.FullU
 	var fullUserInfo models.FullUserInfo
 	data := db.DB.
 		Select(
-			"users.id, users.login, users.name, users.surname, users.email, users.phone, users.role_id, users.active, users.pass, users.created, users.updated, users.avatar_id").
+			"users.id, users.login, users.name, users.surname, users.email, users.phone, users.role, users.active, users.pass, users.created, users.updated, users.avatar_id").
 		Where("users.login = ? OR users.email = ?", login, email).
+		First(&models.User{}).First(&fullUserInfo)
+
+	if data.RowsAffected == 0 {
+		return fullUserInfo, data.Error
+	}
+
+	return fullUserInfo, nil
+}
+
+func (db *Database) UserInfoById(id interface{}) (models.FullUserInfo, error) {
+	var fullUserInfo models.FullUserInfo
+	data := db.DB.
+		Select(
+			"users.id, users.login, users.name, users.surname, users.email, users.phone, users.role, users.active, users.pass, users.created, users.updated, users.avatar_id").
+		Where("users.id = ?", id).
 		First(&models.User{}).First(&fullUserInfo)
 
 	if data.RowsAffected == 0 {
@@ -76,4 +92,21 @@ func (db *Database) CheckIfUserExist(login string, email string) bool {
 		return false
 	}
 	return true
+}
+
+func (db *Database) UpdateUser(userData requestData.ChangeUser) error {
+	if err := db.Model(&models.User{}).Where("id = ?", userData.ID).
+		Updates(map[string]interface{}{
+			"login":   userData.Login,
+			"name":    userData.Name,
+			"surname": userData.Surname,
+			"email":   userData.Email,
+			"phone":   userData.Phone,
+			"role":    userData.Role,
+			"active":  userData.Active,
+		}).Error; err != nil {
+		return err
+	}
+
+	return nil
 }

@@ -399,7 +399,7 @@ func (a *App) ChangeEmailComplete(c *gin.Context) {
 	access, refresh, err := authorization.GenerateJWT(authorization.TokenData{
 		Authorized: true,
 		Email:      foundCode.Email,
-		Role:       users.RoleId,
+		Role:       users.Role,
 	})
 	if err != nil {
 		a.logger.Errorf("error generate token: %v", err)

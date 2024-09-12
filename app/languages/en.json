@@ -67,5 +67,7 @@
     "action_log_empty": "Action log is empty",
     "welcome_admin_panel": "Welcome to Admin Panel!",
     "link_to_register": "Your link to registration is: ",
-    "smtp_settings_updated": "The settings of mail server was successful updated!"
+    "smtp_settings_updated": "The settings of mail server was successful updated!",
+    "user_updated": "User data was successfuly updated!",
+    "internal_error": "Internal error"
 }
