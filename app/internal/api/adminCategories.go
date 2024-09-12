@@ -248,7 +248,7 @@ func (a *App) DeleteCategory(c *gin.Context) {
 
 	// Get categories
 	var foundCategories []models.Category
-	if err := a.db.Model(&models.Category{}).Where("category_id = ?", categoryBody.CategoryID).Find(&foundCategories); err != nil {
+	if err := a.db.Model(&models.Category{}).Where("category_id IN ?", categoryBody.CategoryID).Find(&foundCategories).Error; err != nil {
 		a.logger.Errorf("error get category: %v", err)
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "category_not_found"), errorCodes.CategoryNotFound))
 		return
