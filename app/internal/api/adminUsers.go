@@ -89,6 +89,11 @@ func (a *App) ChangeUser(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "name_surname_long"), errorCodes.IncorrectInfoData))
 		return
 	}
+
+	if len(user.Phone) > 0 && user.Phone[0] != '+' {
+		user.Phone = "+" + user.Phone
+	}
+
 	if user.Phone != "" {
 		if valid := utils.PhoneNumberValidator(user.Phone); !valid {
 			c.JSON(http.StatusBadRequest, models.ResponseMsg(false, language.Language(lang, "invalid_phone_number_format"), errorCodes.IncorrectUserPhone))
