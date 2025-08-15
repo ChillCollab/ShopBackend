@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "quoted-printable": "^1.0.1"
+  }
+}

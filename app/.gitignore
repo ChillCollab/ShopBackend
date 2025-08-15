@@ -1,0 +1,9 @@
+.idea
+./.idea
+.env
+backend
+backend.exe
+idea
+app
+logs/*
+main
